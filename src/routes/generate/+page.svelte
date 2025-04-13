@@ -321,8 +321,8 @@
             </div>
 
             <!-- Right Column - Preview -->
-            <div class="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center min-h-[500px]">
-                <div bind:this={previewContainer} class="qr-preview"></div>
+            <div class="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center min-h-[500px] max-w-[500px] overflow-hidden">
+                <div bind:this={previewContainer} class="qr-preview max-w-full"></div>
             </div>
         </div>
     </div>
@@ -333,10 +333,14 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        width: 100%;
+        height: 100%;
     }
 
-    .qr-preview :global(canvas) {
-        max-width: 100%;
-        height: auto;
+    .qr-preview :global(canvas),
+    .qr-preview :global(svg) {
+        max-width: 100% !important;
+        height: auto !important;
+        object-fit: contain;
     }
 </style>
