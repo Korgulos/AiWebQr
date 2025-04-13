@@ -1,15 +1,9 @@
 <script>
     import logo from '$lib/assets/qr-code.png';
     import image_profile from '$lib/assets/dummy-profile.png';
-    import { SwitchState } from '$lib/elements/nav/switchState.svelte';
-    import Counter from '$lib/elements/nav/counter.svelte';
-    import TemperatureConverter from '$lib/elements/nav/temperatureConverter.svelte'; // Corrected import path for TemperatureConverter
-    import FlightBooker from '$lib/elements/nav/flightBooker.svelte';
-    import Timer from './timer.svelte';
   
-      let userClicked = $state(false);
+    let userClicked = $state(false);
       
-      const switchState = new SwitchState();
   
   
   </script>
@@ -31,17 +25,16 @@
         </div>
         <div class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
           <div class="flex shrink-0 items-center">
-            <img class="h-12 w-auto" src="{logo}" alt="QR Code Generator">
+            <a href="/">  
+              <img class="h-12 w-auto" src="{logo}" alt="QR Code Generator">
+            </a>
           </div>
           <div class="hidden sm:ml-8 sm:block">
             <div class="flex space-x-4">
-              <a href="/" onclick={() => switchState.state(1)} class="rounded-md px-4 py-2.5 text-sm font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Counter</a>
-              <a href="/" onclick={() => switchState.state(2)} class="rounded-md px-4 py-2.5 text-sm font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Team</a>
-              <a href="/" onclick={() => switchState.state(3)} class="rounded-md px-4 py-2.5 text-sm font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Flight Booker</a>
-              <a href="/" onclick={() => switchState.state(4)} class="rounded-md px-4 py-2.5 text-sm font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Timer</a>
-              <a href="/" class="rounded-md px-4 py-2.5 text-sm font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">CRUD</a>
-              <a href="/" class="rounded-md px-4 py-2.5 text-sm font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Circle Drawer</a>
-              <a href="/" class="rounded-md px-4 py-2.5 text-sm font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Cells</a>
+              <a href="/" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Home</a>
+              <a href="/" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">About</a>
+              <a href="/" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Services</a>
+              <a href="/" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Contact</a>
             </div>
           </div>
         </div>
@@ -86,18 +79,3 @@
       </div>
     </div>
 </nav>
-{#if (switchState.value === 1)}
-<Counter />
-{/if}
-
-{#if (switchState.value === 2)}
-<TemperatureConverter />
-{/if}
-
-{#if (switchState.value === 3)}
-<FlightBooker />
-{/if}
-
-{#if (switchState.value === 4)}
-<Timer />
-{/if}

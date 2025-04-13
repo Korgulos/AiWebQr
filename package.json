@@ -39,6 +39,8 @@
 		"vite": "^6.0.0"
 	},
 	"dependencies": {
+		"@vercel/analytics": "^1.5.0",
+		"@vercel/speed-insights": "^1.2.0",
 		"jsqr": "^1.4.0",
 		"qr-code-styling": "^1.9.2",
 		"qrcode-svg": "^1.1.0"
