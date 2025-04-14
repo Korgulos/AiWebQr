@@ -1,12 +1,14 @@
 <script lang="ts">
     import Nav from '$lib/elements/nav/nav.svelte';
-    import { AwesomeQR } from 'awesome-qr';
+    import QRCodeStyling from 'qr-code-styling';
+    import type { Options as QRCodeStylingOptions } from 'qr-code-styling';
     import { qrArteStore } from '$lib/stores/qrArte';
     import { onMount } from 'svelte';
 
     let previewContainer = $state<HTMLDivElement | null>(null);
     let isLoading = $state(false);
     let error = $state('');
+    let qrCode = $state<QRCodeStyling | null>(null);
     
     // Input fields bound to store
     let inputUrl = $state('');
@@ -45,52 +47,43 @@
             qrArteStore.setErrorCorrectionLevel(errorCorrectionLevel);
             qrArteStore.setAutoColor(autoColor);
 
-            const options = {
-                text: inputUrl,
-                size,
+            const options: QRCodeStylingOptions = {
+                width: size,
+                height: size,
+                type: 'svg',
+                data: inputUrl,
                 margin,
-                colorDark,
-                colorLight,
-                backgroundImage: backgroundImage || undefined,
-                autoColor,
-                errorCorrectionLevel,
-                components: {
-                    data: {
-                        scale: 0.4,
-                    },
-                    timing: {
-                        scale: 0.5,
-                        protectors: false,
-                    },
-                    alignment: {
-                        scale: 0.5,
-                        protectors: false,
-                    },
-                    cornerAlignment: {
-                        scale: 0.5,
-                        protectors: true,
-                    },
+                qrOptions: {
+                    errorCorrectionLevel
+                },
+                dotsOptions: {
+                    color: colorDark,
+                    type: 'rounded'
+                },
+                backgroundOptions: {
+                    color: colorLight
+                },
+                imageOptions: {
+                    hideBackgroundDots: true,
+                    imageSize: 0.4,
+                    margin: 0
                 }
             };
 
-            const qr = new AwesomeQR(options);
-            const buffer = await qr.draw();
-
-            if (buffer && previewContainer) {
-                const img = document.createElement('img');
-                previewContainer.innerHTML = '';
-                previewContainer.appendChild(img);
-                
-                if (buffer instanceof ArrayBuffer) {
-                    const uint8Array = new Uint8Array(buffer);
-                    const base64String = btoa(String.fromCharCode(...uint8Array));
-                    img.src = `data:image/png;base64,${base64String}`;
-                } else if (typeof buffer === 'string') {
-                    img.src = buffer;
-                }
-            } else {
-                throw new Error('QR generation failed');
+            if (backgroundImage) {
+                options.image = backgroundImage;
             }
+
+            if (qrCode) {
+                qrCode.update(options);
+            } else {
+                qrCode = new QRCodeStyling(options);
+                if (previewContainer) {
+                    previewContainer.innerHTML = '';
+                    await qrCode.append(previewContainer);
+                }
+            }
+
         } catch (err) {
             error = 'Failed to generate QR code. Please try again.';
             console.error('QR generation error:', err);
@@ -107,6 +100,7 @@
             reader.onload = (e) => {
                 if (typeof e.target?.result === 'string') {
                     backgroundImage = e.target.result;
+                    generateArtisticQR();
                 }
             };
             reader.readAsDataURL(file);
@@ -114,26 +108,28 @@
     }
 
     async function downloadQR() {
-        if (!previewContainer?.querySelector('img')) { return; }
+        if (!qrCode) return;
         
         try {
-            const img = previewContainer.querySelector('img');
-            const response = await fetch(img!.src);
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `artistic-qr-${new Date().toISOString().replace('T', ' h').split('.')[0]}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            setTimeout(() => URL.revokeObjectURL(url), 100);
+            await qrCode.download({
+                name: `artistic-qr-${new Date().toISOString().replace('T', ' h').split('.')[0]}`,
+                extension: 'png'
+            });
         } catch (err) {
             error = 'Failed to download QR code. Please try again.';
             console.error('Download error:', err);
         }
     }
+
+    $effect(() => {
+        if (inputUrl) {
+            generateArtisticQR();
+        }
+    });
+
+    onMount(() => {
+        generateArtisticQR();
+    });
 </script>
 
 <Nav />
@@ -254,7 +250,7 @@
                     <button
                         onclick={downloadQR}
                         class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        disabled={isLoading}
+                        disabled={isLoading || !qrCode}
                     >
                         Download
                     </button>
@@ -286,9 +282,10 @@
         height: 100%;
     }
 
-    .qr-preview :global(img) {
-        max-width: 100%;
-        height: auto;
+    .qr-preview :global(canvas),
+    .qr-preview :global(svg) {
+        max-width: 100% !important;
+        height: auto !important;
         object-fit: contain;
     }
 </style>
