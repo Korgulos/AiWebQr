@@ -73,19 +73,23 @@
                 }
             };
 
-            const buffer = await new AwesomeQR(options).draw();
-            //console.log(buffer);
-            //console.log('backgroundImage:', backgroundImage);
-            if (buffer) {
-                const base64String = btoa(String.fromCharCode(...new Uint8Array(buffer as ArrayBuffer)));
-                if (previewContainer && buffer) {
-                    const img = document.createElement('img');
-                    previewContainer.innerHTML = '';
-                    previewContainer.appendChild(img);
-                    img.src = `${buffer}`;
+            const qr = new AwesomeQR(options);
+            const buffer = await qr.draw();
+
+            if (buffer && previewContainer) {
+                const img = document.createElement('img');
+                previewContainer.innerHTML = '';
+                previewContainer.appendChild(img);
+                
+                if (buffer instanceof ArrayBuffer) {
+                    const uint8Array = new Uint8Array(buffer);
+                    const base64String = btoa(String.fromCharCode(...uint8Array));
+                    img.src = `data:image/png;base64,${base64String}`;
+                } else if (typeof buffer === 'string') {
+                    img.src = buffer;
+                }
             } else {
-                throw new Error('Buffer is undefined');
-            }
+                throw new Error('QR generation failed');
             }
         } catch (err) {
             error = 'Failed to generate QR code. Please try again.';
