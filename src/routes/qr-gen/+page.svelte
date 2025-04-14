@@ -9,7 +9,7 @@
     let isLoading = $state(false);
     let error = $state('');
     let qrCode = $state<QRCodeStyling | null>(null);
-    let previewContainer: HTMLDivElement;
+    let previewContainer = $state<HTMLDivElement | null>(null);
     
     // Customization options
     let inputUrl = $state('');
@@ -121,8 +121,8 @@
         if (!qrCode) return;
         try {
             await qrCode.download({
-                name: `qr-${new Date().toISOString().split('T')[0]}`,
-                extension: 'svg'
+                name: `qr-gen-me-${new Date().toISOString().replace('T', ' h').split('.')[0]}`,
+                extension: 'png',
             });
         } catch (err) {
             error = 'Failed to download QR code. Please try again.';
@@ -168,6 +168,7 @@
                     <input
                         type="text"
                         id="url"
+                        maxlength="150"
                         bind:value={inputUrl}
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Enter URL or text"
@@ -322,7 +323,11 @@
 
             <!-- Right Column - Preview -->
             <div class="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center min-h-[500px] max-w-[500px] overflow-hidden">
-                <div bind:this={previewContainer} class="qr-preview max-w-full"></div>
+                <div bind:this={previewContainer} class="qr-preview max-w-full">
+                    <if {previewContainer}>
+                        <img src="src/lib/assets/qr-code.png" alt="Loading..." />
+                    </if> 
+                </div>
             </div>
         </div>
     </div>
