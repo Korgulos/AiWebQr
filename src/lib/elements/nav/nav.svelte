@@ -77,10 +77,10 @@
     <!-- Mobile menu -->
     <div class="sm:hidden" id="mobile-menu">
       <div class="space-y-1 px-2 pb-3 pt-2">
-        <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:" aria-current="page">Dashboard</a>
-        <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Team</a>
-        <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Projects</a>
-        <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Calendar</a>
+        <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:" aria-current="page">Home</a>
+        <a href="/qr-gen" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Generate pretty QR Codes</a>
+        <a href="/arte-qr-gen" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Artistic QR Codes</a>
+        <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Contact</a>
       </div>
     </div>
 </nav>
