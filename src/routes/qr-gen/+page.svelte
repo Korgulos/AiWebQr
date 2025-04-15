@@ -1,4 +1,5 @@
 <script lang="ts">
+    import qrLoader from '$lib/assets/qr-code.png';
     import { qrStore } from '$lib/stores/qrStore';
     import Nav from '$lib/elements/nav/nav.svelte';
     import QRCodeStyling from 'qr-code-styling';
@@ -325,7 +326,7 @@
             <div class="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center min-h-[500px] max-w-[500px] overflow-hidden">
                 <div bind:this={previewContainer} class="qr-preview max-w-full">
                     <if {previewContainer}>
-                        <img src="src/lib/assets/qr-code.png" alt="Loading..." />
+                        <img src="{qrLoader}" alt="Loading..." />
                     </if> 
                 </div>
             </div>
