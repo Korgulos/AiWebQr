@@ -13,7 +13,7 @@
             Create smart, dynamic QR codes powered by <strong>QR-Generator</strong>. Perfect for businesses and personal use.
           </p>
           <div class="mt-10 flex items-center gap-x-6">
-            <a href="/generate" class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            <a href="/qr-gen" class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
               Get Started
             </a>
             <a href="/under-construction" class="text-sm font-semibold leading-6 text-gray-900">
