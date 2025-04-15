@@ -1,31 +1,87 @@
 <script lang="ts">
+    import qrDummyPic from '$lib/assets/qr-code.png';
     import Nav from '$lib/elements/nav/nav.svelte';
-    import QRCodeStyling from 'qr-code-styling';
-    import type { Options as QRCodeStylingOptions } from 'qr-code-styling';
-    import { qrArteStore } from '$lib/stores/qrArte';
     import { onMount } from 'svelte';
+    import { loadPyodide } from 'pyodide';
 
-    let previewContainer = $state<HTMLDivElement | null>(null);
-    let isLoading = $state(false);
-    let error = $state('');
-    let qrCode = $state<QRCodeStyling | null>(null);
-    
-    // Input fields bound to store
+    let pyodide: any = null;
     let inputUrl = $state('');
-    let size = $state(500);
-    let margin = $state(10);
-    let colorDark = $state('#000000');
-    let colorLight = $state('#ffffff');
-    let autoColor = $state(true);
+    let qrImage = $state<string | null>(null);
+    let isLoading = $state(true);
+    let error = $state('');
     let backgroundImage = $state<string | null>(null);
-    let errorCorrectionLevel = $state<'L' | 'M' | 'Q' | 'H'>('H');
+    let isAnimated = $state(false);
+    let scale = $state(4);
+    
+    // URL for Pyodide
+    const pyodideURL = "https://cdn.jsdelivr.net/pyodide/v0.27.5/full/";
 
-    const errorLevels = [
-        { value: 'L', label: 'Low (7%)' },
-        { value: 'M', label: 'Medium (15%)' },
-        { value: 'Q', label: 'Quartile (25%)' },
-        { value: 'H', label: 'High (30%)' }
-    ];
+    async function generateAnimatedQR() {
+        const pythonCode = `
+            import segno
+            import io
+            import base64
+            from urllib.request import urlopen
+
+            # Create QR code with high error correction
+            qr = segno.make("${inputUrl}", error='h')
+            
+            # Save to bytes buffer
+            buffer = io.BytesIO()
+            
+            url = "${backgroundImage}"
+            bg_file = urlopen(url)
+
+            # Create artistic QR code with background
+            qr.to_artistic(
+                background=bg_file,
+                target=buffer,
+                scale=${scale},
+                border=0,
+                kind='gif'
+            )
+            
+            # Convert to base64
+            b64 = base64.b64encode(buffer.getvalue()).decode()
+            b64
+        `;
+
+        return await pyodide.runPythonAsync(pythonCode);
+    }
+
+    async function generateStaticQR() {
+        const pythonCode =  
+             `
+                import segno
+                import io
+                import base64
+                from urllib.request import urlopen
+
+                # Create QR code with high error correction
+                qr = segno.make("${inputUrl}", error='h')
+                
+                # Save to bytes buffer
+                buffer = io.BytesIO()
+                
+                url = "${backgroundImage}"
+                bg_file = urlopen(url)
+
+                # Create artistic QR code with background
+                qr.to_artistic(
+                    background=bg_file,
+                    target=buffer,
+                    scale=${scale},
+                    border=0,
+                    kind='png'
+                )
+                
+                # Convert to base64
+                b64 = base64.b64encode(buffer.getvalue()).decode()
+                b64
+            `;
+
+        return await pyodide.runPythonAsync(pythonCode);
+    }
 
     async function generateArtisticQR() {
         if (!inputUrl) {
@@ -37,55 +93,22 @@
             isLoading = true;
             error = '';
 
-            // Update store
-            qrArteStore.setUrl(inputUrl);
-            qrArteStore.setSize(size);
-            qrArteStore.setColorDark(colorDark);
-            qrArteStore.setColorLight(colorLight);
-            qrArteStore.setBackgroundImage(backgroundImage);
-            qrArteStore.setMargin(margin);
-            qrArteStore.setErrorCorrectionLevel(errorCorrectionLevel);
-            qrArteStore.setAutoColor(autoColor);
-
-            const options: QRCodeStylingOptions = {
-                width: size,
-                height: size,
-                type: 'svg',
-                data: inputUrl,
-                margin,
-                qrOptions: {
-                    errorCorrectionLevel
-                },
-                dotsOptions: {
-                    color: colorDark,
-                    type: 'rounded'
-                },
-                backgroundOptions: {
-                    color: colorLight
-                },
-                imageOptions: {
-                    hideBackgroundDots: true,
-                    imageSize: 0.4,
-                    margin: 0
-                }
-            };
-
-            if (backgroundImage) {
-                options.image = backgroundImage;
-            }
-
-            if (qrCode) {
-                qrCode.update(options);
+            // If no background image, generate simple QR code
+            if (!backgroundImage) {
+                
+                qrImage = qrDummyPic;
             } else {
-                qrCode = new QRCodeStyling(options);
-                if (previewContainer) {
-                    previewContainer.innerHTML = '';
-                    await qrCode.append(previewContainer);
-                }
-            }
+                // Generate QR with background image (animated or static)
+                const base64Data = isAnimated && backgroundImage 
+                    ? await generateAnimatedQR()
+                    : await generateStaticQR();
 
+                // Create data URL with appropriate mime type
+                const mimeType = isAnimated ? 'image/gif' : 'image/png';
+                qrImage = `data:${mimeType};base64,${base64Data}`;
+            }
         } catch (err) {
-            error = 'Failed to generate QR code. Please try again.';
+            error = 'Failed to generate QR code: ' + (err instanceof Error ? err.message : String(err));
             console.error('QR generation error:', err);
         } finally {
             isLoading = false;
@@ -96,10 +119,14 @@
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
         if (file) {
+            // Check if file is an animated GIF
+            isAnimated = file.type === 'image/gif';
+            
             const reader = new FileReader();
             reader.onload = (e) => {
                 if (typeof e.target?.result === 'string') {
                     backgroundImage = e.target.result;
+                    // Automatically generate new QR code when background changes
                     generateArtisticQR();
                 }
             };
@@ -107,28 +134,47 @@
         }
     }
 
-    async function downloadQR() {
-        if (!qrCode) return;
+    function downloadQR() {
+        if (!qrImage) return;
         
-        try {
-            await qrCode.download({
-                name: `artistic-qr-${new Date().toISOString().replace('T', ' h').split('.')[0]}`,
-                extension: 'png'
-            });
-        } catch (err) {
-            error = 'Failed to download QR code. Please try again.';
-            console.error('Download error:', err);
-        }
+        const link = document.createElement('a');
+        link.href = qrImage;
+        link.download = `artistic-qr-${isAnimated ? 'animated' : 'static'}-${new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')}.${isAnimated ? 'gif' : 'png'}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
-    $effect(() => {
-        if (inputUrl) {
-            generateArtisticQR();
-        }
-    });
+    onMount(async () => {
+        try {
+            isLoading = true;
+            error = '';
+            // Load qrDummyPic
+            qrImage = qrDummyPic;
 
-    onMount(() => {
-        generateArtisticQR();
+            // Load Pyodide
+            pyodide = await loadPyodide({
+                indexURL: pyodideURL,
+            });
+
+            // Install required packages
+            await pyodide.loadPackage("Pillow"); // Required for image processing
+            await pyodide.loadPackage("micropip");
+            await pyodide.runPythonAsync(`
+                import micropip
+                await micropip.install('segno>=1.5.0')
+                await micropip.install('qrcode-artistic')
+            `);
+            await pyodide.runPythonAsync(`
+                from PIL import Image
+            `);
+
+            isLoading = false;
+        } catch (err) {
+            error = 'Failed to initialize Python environment: ' + (err instanceof Error ? err.message : String(err));
+            console.error('Initialization error:', err);
+            isLoading = false;
+        }
     });
 </script>
 
@@ -147,88 +193,31 @@
                         type="text"
                         id="url"
                         bind:value={inputUrl}
+                        oninput={() => inputUrl && generateArtisticQR()}
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Enter URL or text"
                     />
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="size" class="block text-sm font-medium text-gray-700">Size</label>
-                        <input
-                            id="size"
-                            type="range"
-                            bind:value={size}
-                            min="200"
-                            max="1000"
-                            step="10"
-                            class="w-full"
-                        />
-                        <span class="text-sm text-gray-500">{size}px</span>
-                    </div>
-                    <div>
-                        <label for="margin" class="block text-sm font-medium text-gray-700">Margin</label>
-                        <input
-                            id="margin"
-                            type="range"
-                            bind:value={margin}
-                            min="0"
-                            max="50"
-                            step="1"
-                            class="w-full"
-                        />
-                        <span class="text-sm text-gray-500">{margin}px</span>
-                    </div>
+                <div>
+                    <label for="scale" class="block text-sm font-medium text-gray-700">Scale</label>
+                    <input
+                        type="range"
+                        id="scale"
+                        bind:value={scale}
+                        min="1"
+                        max="10"
+                        step="1"
+                        oninput={generateArtisticQR}
+                        class="mt-1 block w-full"
+                    />
+                    <span class="text-sm text-gray-500">{scale}x</span>
                 </div>
 
                 <div>
-                    <label for="errorLevel" class="block text-sm font-medium text-gray-700">Error Correction Level</label>
-                    <select
-                        id="errorLevel"
-                        bind:value={errorCorrectionLevel}
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    >
-                        {#each errorLevels as level}
-                            <option value={level.value}>{level.label}</option>
-                        {/each}
-                    </select>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="colorDark" class="block text-sm font-medium text-gray-700">QR Color</label>
-                            <input
-                                id="colorDark"
-                                type="color"
-                                bind:value={colorDark}
-                                class="mt-1 block w-full"
-                                disabled={autoColor}
-                            />
-                        </div>
-                        <div>
-                            <label for="colorLight" class="block text-sm font-medium text-gray-700">Background Color</label>
-                            <input
-                                id="colorLight"
-                                type="color"
-                                bind:value={colorLight}
-                                class="mt-1 block w-full"
-                            />
-                        </div>
-                    </div>
-                    <div class="flex items-center">
-                        <input
-                            type="checkbox"
-                            id="autoColor"
-                            bind:checked={autoColor}
-                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <label for="autoColor" class="ml-2 text-sm text-gray-700">Auto adjust colors</label>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="backgroundUpload" class="block text-sm font-medium text-gray-700">Background Image</label>
+                    <label for="backgroundUpload" class="block text-sm font-medium text-gray-700">
+                        Background Image {#if isAnimated}(Animated GIF){/if}
+                    </label>
                     <input
                         id="backgroundUpload"
                         type="file"
@@ -244,13 +233,13 @@
                         class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                         disabled={!inputUrl || isLoading}
                     >
-                        Preview QR Code
+                        Generate QR Code
                     </button>
 
                     <button
                         onclick={downloadQR}
-                        class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        disabled={isLoading || !qrCode}
+                        class="flex-1 bg-indigo-600 text-white text-lg  px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        disabled={!qrImage || isLoading}
                     >
                         Download
                     </button>
@@ -263,9 +252,11 @@
 
             <!-- Right Column - Preview -->
             <div class="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center min-h-[500px] overflow-hidden">
-                <div bind:this={previewContainer} class="qr-preview max-w-full">
+                <div class="qr-preview max-w-full">
                     {#if isLoading}
-                        <div class="text-gray-500">Generating QR code...</div>
+                        <div class="text-gray-500">Loading Python environment...</div>
+                    {:else if qrImage}
+                        <img src={qrImage} alt="QR Code" />
                     {/if}
                 </div>
             </div>
@@ -282,11 +273,11 @@
         height: 100%;
     }
 
-    .qr-preview :global(canvas),
-    .qr-preview :global(svg) {
-        max-width: 100% !important;
-        height: auto !important;
-        object-fit: contain;
+    .qr-preview img {
+        max-width: 300px;
+        height: auto;
+        display: block;
+        margin: 0 auto;
     }
 </style>
 
