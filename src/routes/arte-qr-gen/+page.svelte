@@ -1,5 +1,5 @@
 <script lang="ts">
-    import qrDummyPic from '$lib/assets/qr-code.png';
+    import qrDummyPic from '$lib/assets/QrInfo.gif';
     import Nav from '$lib/elements/nav/nav.svelte';
     import { onMount } from 'svelte';
     import { loadPyodide } from 'pyodide';
@@ -37,7 +37,7 @@
                 background=bg_file,
                 target=buffer,
                 scale=${scale},
-                border=0,
+                border=5,
                 kind='gif'
             )
             
@@ -71,7 +71,7 @@
                     background=bg_file,
                     target=buffer,
                     scale=${scale},
-                    border=0,
+                    border=5,
                     kind='png'
                 )
                 
@@ -206,7 +206,7 @@
                         id="scale"
                         bind:value={scale}
                         min="1"
-                        max="10"
+                        max="12"
                         step="1"
                         oninput={generateArtisticQR}
                         class="mt-1 block w-full"

@@ -1,5 +1,5 @@
 <script>
-    import logo from '$lib/assets/qr-code.png';
+    import logo from '$lib/assets/qr-code-sm.png';
     import image_profile from '$lib/assets/dummy-profile.png';
   
     let userClicked = $state(false);
@@ -33,8 +33,8 @@
           <div class="hidden sm:ml-8 sm:block">
             <div class="flex space-x-4">
               <a href="/" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Home</a>
-              <a href="/qr-gen" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Generate pretty QR Codes</a>
-              <a href="/arte-qr-gen" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Artistic QR Codes</a>
+              <a href="/qr-gen" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Pretty QR</a>
+              <a href="/arte-qr-gen" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Artistic QR</a>
               <a href="/under-construction" class="rounded-md px-4 py-2.5 text-xl font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50">Contact</a>
             </div>
           </div>
@@ -78,8 +78,8 @@
     <div class="sm:hidden" id="mobile-menu">
       <div class="space-y-1 px-2 pb-3 pt-2">
         <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:" aria-current="page">Home</a>
-        <a href="/qr-gen" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Generate pretty QR Codes</a>
-        <a href="/arte-qr-gen" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Artistic QR Codes</a>
+        <a href="/qr-gen" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Pretty QR</a>
+        <a href="/arte-qr-gen" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Artistic QR</a>
         <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Contact</a>
       </div>
     </div>
