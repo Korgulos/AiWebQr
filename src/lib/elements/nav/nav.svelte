@@ -214,8 +214,8 @@
   
               {#if userClicked}
               <div class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 ring-1 shadow-lg ring-black/5 focus:outline-hidden" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
-                <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50" role="menuitem">Your Profile</a>
-                <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50" role="menuitem">Settings</a>
+                <a href="/under-construction" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50" role="menuitem">Your Profile</a>
+                <a href="/under-construction" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50" role="menuitem">Settings</a>
                 <button onclick={handleLogout} class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50" role="menuitem">Sign out</button>
               </div>
               {/if}
@@ -236,7 +236,7 @@
         <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:" aria-current="page">Home</a>
         <a href="/qr-gen" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Pretty QR</a>
         <a href="/arte-qr-gen" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Artistic QR</a>
-        <a href="/" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Contact</a>
+        <a href="/under-construction" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-200 transition-colors duration-200 hover:bg-indigo-900 hover:text-slate-50hover:">Contact</a>
       </div>
     </div>
 </nav>

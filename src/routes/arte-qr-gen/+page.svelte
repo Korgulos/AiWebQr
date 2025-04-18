@@ -7,7 +7,7 @@
     let pyodide: any = null;
     let inputUrl = $state('');
     let qrImage = $state<string | null>(null);
-    let isLoading = $state(true);
+    let isLoading = $state(false);
     let error = $state('');
     let backgroundImage = $state<string | null>(null);
     let isAnimated = $state(false);
@@ -126,8 +126,6 @@
             reader.onload = (e) => {
                 if (typeof e.target?.result === 'string') {
                     backgroundImage = e.target.result;
-                    // Automatically generate new QR code when background changes
-                    generateArtisticQR();
                 }
             };
             reader.readAsDataURL(file);
@@ -147,7 +145,6 @@
 
     onMount(async () => {
         try {
-            isLoading = true;
             error = '';
             // Load qrDummyPic
             qrImage = qrDummyPic;
@@ -169,11 +166,9 @@
                 from PIL import Image
             `);
 
-            isLoading = false;
         } catch (err) {
             error = 'Failed to initialize Python environment: ' + (err instanceof Error ? err.message : String(err));
             console.error('Initialization error:', err);
-            isLoading = false;
         }
     });
 </script>
@@ -193,7 +188,6 @@
                         type="text"
                         id="url"
                         bind:value={inputUrl}
-                        oninput={() => inputUrl && generateArtisticQR()}
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Enter URL or text"
                     />
@@ -208,7 +202,6 @@
                         min="1"
                         max="12"
                         step="1"
-                        oninput={generateArtisticQR}
                         class="mt-1 block w-full"
                     />
                     <span class="text-sm text-gray-500">{scale}x</span>
@@ -254,7 +247,7 @@
             <div class="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center min-h-[500px] overflow-hidden">
                 <div class="qr-preview max-w-full">
                     {#if isLoading}
-                        <div class="text-gray-500">Loading Python environment...</div>
+                        <div class="text-indigo-700 text-3xl">Generating QR Code ...</div>
                     {:else if qrImage}
                         <img src={qrImage} alt="QR Code" />
                     {/if}
@@ -274,7 +267,8 @@
     }
 
     .qr-preview img {
-        max-width: 300px;
+        max-width: 600px;
+        overflow: hidden;
         height: auto;
         display: block;
         margin: 0 auto;
