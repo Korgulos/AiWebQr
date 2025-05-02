@@ -5,13 +5,24 @@ interface AuthResponse {
     user?: AuthUser;
 }
 
+interface RegisterData {
+    name: string;
+    email: string;
+    password: string;
+}
+
+interface LoginData {
+    email: string;
+    password: string;
+}
+
 export async function register(name: string, email: string, password: string): Promise<AuthResponse> {
     try {
         authStore.setLoading(true);
         const response = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify({ name, email, password } as RegisterData)
         });
 
         const data = await response.json();
@@ -37,7 +48,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
         const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password } as LoginData)
         });
 
         const data = await response.json();
@@ -66,12 +77,17 @@ export async function logout(): Promise<void> {
 
     try {
         const user = currentState.user;
-        if (user && typeof user.id === 'number') {
-            await fetch('/api/auth/logout', {
+        if (user && typeof user.user_id === 'number') {
+            const response = await fetch('/api/auth/logout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id })
+                body: JSON.stringify({ userId: user.user_id })
             });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Logout failed');
+            }
         }
     } catch (error) {
         console.error('Logout error:', error);

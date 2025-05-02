@@ -6,9 +6,14 @@ export const POST: RequestHandler = async ({ request }) => {
     try {
         const { userId } = await request.json();
         
-        if (userId) {
-            await users.updateLogoutTime(userId);
+        if (!userId) {
+            return json(
+                { error: 'User ID is required' },
+                { status: 400 }
+            );
         }
+
+        await users.updateLogoutTime(userId);
 
         return json({ success: true });
     } catch (err) {

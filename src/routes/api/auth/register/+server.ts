@@ -79,9 +79,9 @@ export const POST: RequestHandler = async ({ request }) => {
         });
 
         // Remove password from response
-        const { password: _, ...userWithoutPassword } = user;
+        const { password: _, ...userResponse } = user;
 
-        return json(userWithoutPassword, { status: 201 });
+        return json(userResponse, { status: 201 });
     } catch (err) {
         console.error('Registration error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';

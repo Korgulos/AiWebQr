@@ -1,7 +1,9 @@
 import * as bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';  // Changed from import * as jwt
 import { users } from '$lib/server/db';
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
+import { JWT_SECRET } from '$env/static/private';
 
 export const POST: RequestHandler = async ({ request }) => {
     try {
@@ -34,12 +36,21 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // Update login time
-        await users.updateLoginTime(user.id);
+        await users.updateLoginTime(user.user_id);
 
-        // Remove password from response
-        const { password: _, ...userWithoutPassword } = user;
+        // Generate JWT token
+        const token = jwt.sign(
+            { user_id: user.user_id },
+            JWT_SECRET || 'fallback-secret-for-development',
+            { expiresIn: '7d' }
+        );
 
-        return json(userWithoutPassword);
+        // Remove password from response and add token
+        const { password: _, ...userResponse } = user;
+        return json({
+            ...userResponse,
+            token
+        });
     } catch (err) {
         console.error('Login error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';

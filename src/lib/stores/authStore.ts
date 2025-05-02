@@ -1,13 +1,15 @@
 import { writable } from 'svelte/store';
 
 export interface AuthUser {
-    id: number;
+    user_id: number;
     name: string;
     email: string;
     subscription: boolean;
-    signup: Date;
-    login: Date | null;
-    logout: Date | null;
+    signup: string;
+    login: string | null;
+    logout: string | null;
+    updated_at: string;
+    token?: string;
 }
 
 interface AuthState {
