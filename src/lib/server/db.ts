@@ -1,6 +1,8 @@
-import { Pool } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import { DATABASE_URL } from '$env/static/private';
+import ws from 'ws';
 
+neonConfig.webSocketConstructor = ws;
 export interface User {
     user_id: number;
     name: string;

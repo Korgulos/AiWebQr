@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { page } from '$app/stores';
+    import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { authStore } from '$lib/stores/authStore';
     
@@ -8,7 +8,7 @@
     let error = '';
     let loading = false;
 
-    const returnTo = $page.url.searchParams.get('returnTo') || '/';
+    const returnTo = page.url.searchParams.get('returnTo') || '/';
 
     async function handleLogin() {
         loading = true;
