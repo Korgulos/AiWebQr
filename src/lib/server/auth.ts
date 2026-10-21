@@ -1,19 +1,23 @@
-import jwt from 'jsonwebtoken';  // Changed from import * as jwt
-import { JWT_SECRET } from '$env/static/private';
-import type { Handle } from '@sveltejs/kit';
+import { json, type Handle } from '@sveltejs/kit';
+import { readSession, sessionCookie } from './session';
 
 export const handle: Handle = async ({ event, resolve }) => {
-    const authHeader = event.request.headers.get('Authorization');
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.split(' ')[1];
-        try {
-            const decoded = jwt.verify(token, JWT_SECRET || 'fallback-secret-for-development') as { user_id: number };
-            event.locals.user = { user_id: decoded.user_id };
-        } catch (err) {
-            console.error('JWT verification failed:', err);
-        }
-    }
-
-    return await resolve(event);
+	const origin = event.request.headers.get('origin');
+	if (
+		!['GET', 'HEAD', 'OPTIONS'].includes(event.request.method) &&
+		origin &&
+		origin !== event.url.origin
+	) {
+		return json({ error: 'Cross-origin requests are not allowed' }, { status: 403 });
+	}
+	const token = event.cookies.get(sessionCookie);
+	event.locals.user = token ? readSession(token) : null;
+	const response = await resolve(event);
+	if (event.url.pathname.startsWith('/api/') || event.locals.user) {
+		response.headers.set('Cache-Control', 'private, no-store');
+	}
+	response.headers.set('X-Content-Type-Options', 'nosniff');
+	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+	response.headers.set('X-Frame-Options', 'DENY');
+	return response;
 };

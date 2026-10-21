@@ -1,59 +1,55 @@
 import * as bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';  // Changed from import * as jwt
+import { createSession, requireSessionSecret } from '$lib/server/session';
 import { users } from '$lib/server/db';
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-import { JWT_SECRET } from '$env/static/private';
 
-export const POST: RequestHandler = async ({ request }) => {
-    try {
-        const { email, password } = await request.json();
+export const POST: RequestHandler = async ({ request, cookies }) => {
+	try {
+		const payload = await request.json().catch(() => null);
+		if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+			return json({ error: 'A valid JSON object is required' }, { status: 400 });
+		}
+		const { email, password } = payload;
 
-        // Validate input
-        if (!email || !password) {
-            return json(
-                { error: 'Email and password are required' },
-                { status: 400 }
-            );
-        }
+		// Validate input
+		if (
+			typeof email !== 'string' ||
+			typeof password !== 'string' ||
+			!email ||
+			!password ||
+			email.length > 60 ||
+			new TextEncoder().encode(password).length > 72
+		) {
+			return json({ error: 'Email and password are required' }, { status: 400 });
+		}
 
-        // Find user by email
-        const user = await users.findByEmail(email);
-        if (!user) {
-            return json(
-                { error: 'Invalid email or password' },
-                { status: 401 }
-            );
-        }
+		requireSessionSecret();
 
-        // Verify password
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        if (!isValidPassword) {
-            return json(
-                { error: 'Invalid email or password' },
-                { status: 401 }
-            );
-        }
+		// Find user by email
+		const user = await users.findByEmail(email.trim());
+		if (!user) {
+			return json({ error: 'Invalid email or password' }, { status: 401 });
+		}
 
-        // Update login time
-        await users.updateLoginTime(user.user_id);
+		// Verify password
+		const isValidPassword = await bcrypt.compare(password, user.password);
+		if (!isValidPassword) {
+			return json({ error: 'Invalid email or password' }, { status: 401 });
+		}
 
-        // Generate JWT token
-        const token = jwt.sign(
-            { user_id: user.user_id },
-            JWT_SECRET || 'fallback-secret-for-development',
-            { expiresIn: '7d' }
-        );
+		// Update login time
+		await users.updateLoginTime(user.user_id);
 
-        // Remove password from response and add token
-        const { password: _, ...userResponse } = user;
-        return json({
-            ...userResponse,
-            token
-        });
-    } catch (err) {
-        console.error('Login error:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        return json({ error: errorMessage }, { status: 500 });
-    }
+		createSession(user.user_id, cookies);
+
+		// Return the profile; the session remains in the HttpOnly cookie.
+		const { password: _, ...userResponse } = user;
+		return json({
+			...userResponse
+		});
+	} catch (err) {
+		console.error('Login error:', err);
+		return json({ error: 'Unable to sign in. Please try again.' }, { status: 500 });
+	}
 };
