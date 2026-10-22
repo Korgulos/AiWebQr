@@ -1,7 +1,11 @@
 import { writable } from 'svelte/store';
 
 export interface AuthUser {
-	user_id: number;
+	first_name?: string | null;
+	last_name?: string | null;
+	username?: string | null;
+	avatar_data?: string | null;
+	public_id?: string;
 	name: string;
 	email: string;
 	subscription: boolean;

@@ -5,12 +5,15 @@
 		type ContentType,
 		type ContentValues
 	} from '$lib/qr-content';
-	let { type, values = $bindable(emptyContent()) }: { type: ContentType; values?: ContentValues } =
-		$props();
+	let {
+		type,
+		values = $bindable(emptyContent()),
+		onlyField = ''
+	}: { type: ContentType; values?: ContentValues; onlyField?: string } = $props();
 </script>
 
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-	{#each contentFields[type] as field (field.key)}
+	{#each contentFields[type].filter((field) => !onlyField || field.key === onlyField) as field (field.key)}
 		<div class={field.wide ? 'sm:col-span-2' : ''}>
 			<label for={`qr-content-${field.key}`} class="mb-1.5 block text-sm font-medium text-slate-700"
 				>{field.label}</label

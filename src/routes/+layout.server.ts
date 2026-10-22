@@ -5,6 +5,6 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	if (!locals.user) return { user: null };
 	const user = await users.findById(locals.user.user_id);
 	if (!user) return { user: null };
-	const { password: _, ...profile } = user;
+	const { password: _, user_id: __, session_version: ___, ...profile } = user;
 	return { user: profile };
 };

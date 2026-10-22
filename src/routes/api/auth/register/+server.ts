@@ -84,7 +84,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		createSession(user.user_id, cookies);
 
 		// Remove password from response
-		const { password: _, ...userResponse } = user;
+		const { password: _, user_id: __, session_version: ___, ...userResponse } = user;
 
 		return json(userResponse, { status: 201 });
 	} catch (err) {

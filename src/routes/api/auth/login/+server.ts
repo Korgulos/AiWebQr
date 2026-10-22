@@ -41,10 +41,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		// Update login time
 		await users.updateLoginTime(user.user_id);
 
-		createSession(user.user_id, cookies);
+		createSession(user.user_id, cookies, user.session_version || 0);
 
 		// Return the profile; the session remains in the HttpOnly cookie.
-		const { password: _, ...userResponse } = user;
+		const { password: _, user_id: __, session_version: ___, ...userResponse } = user;
 		return json({
 			...userResponse
 		});

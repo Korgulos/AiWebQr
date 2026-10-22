@@ -12,6 +12,37 @@
 	import type { Options, DotType, CornerSquareType, CornerDotType } from 'qr-code-styling';
 	import { onMount } from 'svelte';
 
+	let {
+		fixedContent = '',
+		embedded = false,
+		onSave
+	}: {
+		fixedContent?: string;
+		embedded?: boolean;
+		onSave?: (file: Blob, content: string) => Promise<void>;
+	} = $props();
+	let savingDesign = $state(false),
+		saveMessage = $state('');
+	async function saveDesign() {
+		if (!onSave || savingDesign) return;
+		savingDesign = true;
+		saveMessage = '';
+		try {
+			const encoded = content.value;
+			const instance = qrCode;
+			const file = await instance?.getRawData('png');
+			if (encoded !== content.value || instance !== qrCode)
+				throw new Error('Design changed. Please save again.');
+			if (!(file instanceof Blob)) throw new Error('Generate a QR first.');
+			await onSave(file, encoded);
+			saveMessage = 'Saved to campaign gallery.';
+		} catch (e) {
+			saveMessage = e instanceof Error ? e.message : 'Could not save QR.';
+		} finally {
+			savingDesign = false;
+		}
+	}
+
 	let renderRevision = 0;
 	let QRConstructor: typeof QRCodeStyling | null = null;
 	let ready = $state(false);
@@ -19,7 +50,11 @@
 	let previewContainer: HTMLDivElement | null = $state(null);
 	let contentType = $state<ContentType>('url');
 	let values = $state(emptyContent());
-	let attempted = $state(false);
+	const hasContent = $derived(
+		Object.entries(values).some(
+			([key, value]) => !['encryption', 'hidden'].includes(key) && value.trim()
+		)
+	);
 	let isLoading = $state(false);
 	let error = $state('');
 	let size = $state(600);
@@ -102,7 +137,7 @@
 	] as const;
 	const content = $derived.by(() => {
 		try {
-			return { value: buildQRContent(contentType, values), error: '' };
+			return { value: fixedContent || buildQRContent(contentType, values), error: '' };
 		} catch (error) {
 			return { value: '', error: error instanceof Error ? error.message : 'Check your content.' };
 		}
@@ -292,94 +327,102 @@
 
 <div class="container mx-auto bg-gray-50 p-4">
 	<div class="mx-auto max-w-7xl">
-		<div class="mb-8 grid items-stretch gap-6 md:grid-cols-2 md:gap-8">
-			<div class="self-center py-3">
-				<h2 class="text-3xl font-bold text-gray-900">Make it yours</h2>
-				<p class="mt-3 max-w-lg leading-7 text-gray-600">
-					Enter a link or text, customize your code, and download it. No account needed.
-				</p>
-			</div>
-			<a
-				href="/arte-qr-gen"
-				class="group flex min-h-44 items-center justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-800 p-5 text-white shadow-sm transition-shadow hover:shadow-lg sm:gap-6 sm:p-6"
-			>
-				<div class="min-w-0">
-					<p class="text-xs font-semibold uppercase tracking-widest text-indigo-200">Artistic QR</p>
-					<h3 class="mt-2 text-xl font-bold sm:text-2xl">Bring your QR to life.</h3>
-					<p class="mt-2 max-w-xs text-sm leading-6 text-indigo-100">
-						Turn an image or animated GIF into a QR code.
+		{#if !embedded}<div class="mb-8 grid items-stretch gap-6 md:grid-cols-2 md:gap-8">
+				<div class="self-center py-3">
+					<h2 class="text-3xl font-bold text-gray-900">Make it yours</h2>
+					<p class="mt-3 max-w-lg leading-7 text-gray-600">
+						Enter a link or text, customize your code, and download it. No account needed.
 					</p>
-					<span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold"
-						>Try Artistic QR <span
-							aria-hidden="true"
-							class="transition-transform group-hover:translate-x-1">→</span
-						></span
-					>
 				</div>
-				<div class="shrink-0 text-center">
-					<div
-						class="artistic-demo relative size-28 overflow-hidden rounded-xl border-4 border-white/90 bg-white shadow-lg sm:size-36"
-					>
-						<img
-							src={artisticDemo}
-							alt="Animated artistic QR code example"
-							width="1100"
-							height="1100"
-							class="artistic-demo-image absolute"
-						/>
-					</div>
-					<span class="mt-2 block text-[10px] font-medium uppercase tracking-widest text-indigo-200"
-						>Animated QR example</span
-					>
-				</div>
-			</a>
-		</div>
-
-		<div
-			class="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3"
-			role="group"
-			aria-label="QR content type"
-		>
-			{#each contentTypes as type}
-				<button
-					type="button"
-					aria-pressed={contentType === type.id}
-					onclick={() => {
-						contentType = type.id;
-						attempted = false;
-					}}
-					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors {contentType ===
-					type.id
-						? 'bg-indigo-600 text-white shadow-sm'
-						: 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}"
-					><span aria-hidden="true" class="text-lg leading-none">{type.symbol}</span
-					>{type.label}</button
+				<a
+					href="/arte-qr-gen"
+					class="group flex min-h-44 items-center justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-800 p-5 text-white shadow-sm transition-shadow hover:shadow-lg sm:gap-6 sm:p-6"
 				>
-			{/each}
-		</div>
+					<div class="min-w-0">
+						<p class="text-xs font-semibold uppercase tracking-widest text-indigo-200">
+							Artistic QR
+						</p>
+						<h3 class="mt-2 text-xl font-bold sm:text-2xl">Bring your QR to life.</h3>
+						<p class="mt-2 max-w-xs text-sm leading-6 text-indigo-100">
+							Turn an image or animated GIF into a QR code.
+						</p>
+						<span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold"
+							>Try Artistic QR <span
+								aria-hidden="true"
+								class="transition-transform group-hover:translate-x-1">→</span
+							></span
+						>
+					</div>
+					<div class="shrink-0 text-center">
+						<div
+							class="artistic-demo relative size-28 overflow-hidden rounded-xl border-4 border-white/90 bg-white shadow-lg sm:size-36"
+						>
+							<img
+								src={artisticDemo}
+								alt="Animated artistic QR code example"
+								width="1100"
+								height="1100"
+								class="artistic-demo-image absolute"
+							/>
+						</div>
+						<span
+							class="mt-2 block text-[10px] font-medium uppercase tracking-widest text-indigo-200"
+							>Animated QR example</span
+						>
+					</div>
+				</a>
+			</div>
+
+			<div
+				class="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3"
+				role="group"
+				aria-label="QR content type"
+			>
+				{#each contentTypes as type}
+					<button
+						type="button"
+						aria-pressed={contentType === type.id}
+						onclick={() => {
+							contentType = type.id;
+						}}
+						class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors {contentType ===
+						type.id
+							? 'bg-indigo-600 text-white shadow-sm'
+							: 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}"
+						><span aria-hidden="true" class="text-lg leading-none">{type.symbol}</span
+						>{type.label}</button
+					>
+				{/each}
+			</div>
+		{/if}
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-8">
 			<div class="space-y-4">
-				<section
-					class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
-					aria-labelledby="content-heading"
-				>
-					<h3
-						id="content-heading"
-						class="mb-5 flex items-center gap-3 text-lg font-semibold text-slate-900"
+				{#if !fixedContent}
+					<section
+						class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
+						aria-labelledby="content-heading"
 					>
-						<span class="step-number">1</span>Enter content<span
-							class="ml-auto text-xs font-medium text-indigo-600"
-							>{contentTypes.find((type) => type.id === contentType)?.label}</span
+						<h3
+							id="content-heading"
+							class="mb-5 flex items-center gap-3 text-lg font-semibold text-slate-900"
 						>
-					</h3>
-					<ContentForm type={contentType} bind:values />
-					{#if attempted && content.error}<p role="alert" class="mt-3 text-sm text-red-600">
-							{content.error}
-						</p>{/if}
-					<p class="mt-4 text-xs leading-5 text-slate-500">
-						Your content stays in your browser. No account required.
-					</p>
-				</section>
+							<span class="step-number">1</span>Enter content<span
+								class="ml-auto text-xs font-medium text-indigo-600"
+								>{contentTypes.find((type) => type.id === contentType)?.label}</span
+							>
+						</h3>
+						<ContentForm type={contentType} bind:values />
+						{#if hasContent && content.error}<p role="alert" class="mt-3 text-sm text-red-600">
+								{content.error}
+							</p>{/if}
+						<p class="mt-4 text-xs leading-5 text-slate-500">
+							Your content stays in your browser. No account required.
+						</p>
+					</section>
+				{:else}<div class="rounded-xl border border-slate-200 p-4">
+						<p class="text-sm text-slate-500">Campaign QR content · from step 2</p>
+						<p class="mt-2 break-all text-sm">{fixedContent}</p>
+					</div>{/if}
 				<details class="design-section" open>
 					<summary
 						><span class="step-number">2</span>Set colors<span
@@ -672,16 +715,9 @@
 						Static QR · no expiration · scan your final design before printing.
 					</p>
 				</div>
-				<button
-					type="button"
-					onclick={() => {
-						attempted = true;
-						void generateQR();
-					}}
-					disabled={!ready || isLoading}
-					class="w-full rounded-xl bg-indigo-600 px-5 py-3.5 font-semibold text-white shadow-sm hover:bg-indigo-700"
-					>{isLoading ? 'Creating…' : 'Create QR Code'}</button
-				>
+				<p class="text-xs text-slate-500" role="status">
+					{isLoading ? 'Updating preview…' : 'QR preview updates automatically.'}
+				</p>
 				<div class="flex gap-2">
 					<label for="download-format" class="sr-only">Download format</label><select
 						id="download-format"
@@ -696,7 +732,7 @@
 						>Download {format.toUpperCase()}</button
 					>
 				</div>
-				{#if attempted && content.error}<p
+				{#if hasContent && content.error}<p
 						role="alert"
 						class="rounded-xl bg-red-50 p-3 text-sm text-red-700"
 					>
@@ -705,6 +741,21 @@
 				{#if error}<p role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">
 						{error}
 					</p>{/if}
+				{#if onSave}<div class="mt-4 space-y-3">
+						<p class="text-xs text-slate-500">
+							Saving uploads this QR image to public storage. Anyone with its URL can read the
+							encoded content.
+						</p>
+						<button
+							onclick={saveDesign}
+							disabled={savingDesign || !qrCode || isLoading}
+							class="w-full rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white"
+							>{savingDesign ? 'Saving…' : 'Save to campaign'}</button
+						>{#if saveMessage}<p role="status" class="text-sm text-indigo-600">
+								{saveMessage}
+							</p>{/if}
+					</div>{/if}
+
 				<section class="rounded-2xl border border-slate-200 bg-white p-5">
 					<h3 class="text-sm font-semibold text-slate-800">Start with a style</h3>
 					<p class="mt-1 text-xs text-slate-500">Apply a template, then make it your own.</p>
@@ -848,5 +899,32 @@
 			0 8px,
 			8px -8px,
 			-8px 0;
+	}
+	@media (prefers-color-scheme: dark) {
+		.design-section {
+			background: #111c30;
+			border-color: #334155;
+		}
+		.design-section summary {
+			color: #f1f5f9;
+		}
+		.section-body {
+			border-color: #334155;
+		}
+		.field-label,
+		.color-field,
+		.shape-choice {
+			color: #cbd5e1;
+		}
+		.color-field input,
+		.shape-choice {
+			border-color: #475569;
+		}
+		.step-number,
+		.shape-choice:hover,
+		.shape-choice.chosen {
+			background: #252e52;
+			color: #c7d2fe;
+		}
 	}
 </style>

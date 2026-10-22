@@ -8,8 +8,8 @@ export function requireSessionSecret() {
 	if (!env.JWT_SECRET) throw new Error('JWT_SECRET is required');
 	return env.JWT_SECRET;
 }
-export function createSession(userId: number, cookies: Cookies) {
-	const token = jwt.sign({ user_id: userId }, requireSessionSecret(), {
+export function createSession(userId: number, cookies: Cookies, version = 0) {
+	const token = jwt.sign({ user_id: userId, session_version: version }, requireSessionSecret(), {
 		algorithm: 'HS256',
 		expiresIn: '7d'
 	});
@@ -30,7 +30,10 @@ export function readSession(token: string) {
 			Number.isSafeInteger(decoded.user_id) &&
 			decoded.user_id > 0
 		) {
-			return { user_id: decoded.user_id as number };
+			return {
+				user_id: decoded.user_id as number,
+				...(decoded.session_version ? { session_version: Number(decoded.session_version) } : {})
+			};
 		}
 	} catch {
 		/* An invalid or expired session is anonymous. */

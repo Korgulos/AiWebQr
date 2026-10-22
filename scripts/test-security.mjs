@@ -58,6 +58,60 @@ try {
 	const login = await load('routes/api/auth/login/+server.ts');
 	const register = await load('routes/api/auth/register/+server.ts');
 	let cookie;
+	await check(
+		'campaign deletion requires confirmation, enforces ownership and deletes atomically',
+		async () => {
+			const id = '651928d8-0c0a-4255-9119-49723eb8d4f6';
+			assert.equal(
+				(
+					await campaigns.DELETE(
+						event('/api/campaigns', { method: 'DELETE', body: { id, confirmation: 'DELETE' } })
+					)
+				).status,
+				401
+			);
+			assert.equal(
+				(
+					await campaigns.DELETE(
+						event('/api/campaigns', { method: 'DELETE', user: { user_id: 7 }, body: { id } })
+					)
+				).status,
+				400
+			);
+			let found = false;
+			const calls = [];
+			db.getClient = async () => ({
+				async query(sql, params) {
+					calls.push(sql);
+					if (sql.startsWith('SELECT campaign_id')) {
+						assert.deepEqual(params, [id, 7]);
+						return { rows: found ? [{ campaign_id: 19, backlink_id: 23 }] : [] };
+					}
+					if (sql.startsWith('DELETE FROM campaigns')) assert.deepEqual(params, [19, 7]);
+					if (sql.startsWith('DELETE FROM backlinks')) assert.deepEqual(params, [23, 7]);
+					return { rows: [] };
+				},
+				release() {}
+			});
+			const request = () =>
+				event('/api/campaigns', {
+					method: 'DELETE',
+					user: { user_id: 7 },
+					body: { id, confirmation: 'DELETE' }
+				});
+			assert.equal((await campaigns.DELETE(request())).status, 404);
+			assert.ok(calls.includes('ROLLBACK'));
+			assert.ok(!calls.some((sql) => sql.startsWith('DELETE')));
+			found = true;
+			calls.length = 0;
+			assert.equal((await campaigns.DELETE(request())).status, 200);
+			assert.ok(calls.some((sql) => sql.startsWith('DELETE FROM campaigns')));
+			assert.ok(calls.some((sql) => sql.startsWith('DELETE FROM backlinks')));
+			assert.equal(calls.at(-1), 'COMMIT');
+			db.getClient = fail;
+		}
+	);
+
 	await check('session cookie is HttpOnly, SameSite and bounded', () => {
 		createSession(7, {
 			set(name, token, options) {
@@ -105,14 +159,17 @@ try {
 		});
 		assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
 	});
-	await check('anonymous campaign and comment requests are denied', async () => {
+	await check('anonymous campaigns are denied and retired comments return 404', async () => {
 		for (const [handler, path, method] of [
 			[campaigns.GET, '/api/campaigns', 'GET'],
 			[campaigns.POST, '/api/campaigns', 'POST'],
 			[comments.GET, '/api/campaigns/comments', 'GET'],
 			[comments.POST, '/api/campaigns/comments', 'POST']
 		]) {
-			assert.equal((await handler(event(path, { method }))).status, 401);
+			assert.equal(
+				(await handler(event(path, { method }))).status,
+				path.includes('/comments') ? 404 : 401
+			);
 		}
 	});
 	await check('campaign reads include the authenticated owner', async () => {
@@ -122,13 +179,15 @@ try {
 			return [];
 		};
 		await campaigns.GET(event('/api/campaigns', { user: { user_id: 7 } }));
-		await campaigns.GET(event('/api/campaigns?id=22', { user: { user_id: 7 } }));
+		await campaigns.GET(
+			event('/api/campaigns?id=11111111-1111-4111-8111-111111111111', { user: { user_id: 7 } })
+		);
 		assert.match(calls[0].sql, /WHERE c.user_id = \$1/);
 		assert.deepEqual(calls[0].params, [7]);
 		assert.match(calls[1].sql, /c.user_id = \$2/);
-		assert.deepEqual(calls[1].params, [22, 7]);
+		assert.deepEqual(calls[1].params, ['11111111-1111-4111-8111-111111111111', 7]);
 	});
-	await check('comments cannot access another owner’s campaign', async () => {
+	await check('retired comments endpoint rejects reads and writes', async () => {
 		db.query = async (sql, params) => {
 			assert.match(sql, /user_id = \$2/);
 			assert.deepEqual(params, [22, 7]);
@@ -178,7 +237,10 @@ try {
 		db.query = async () => [
 			{ campaign_id: 22, backlink_id: 1, destination_url: 'javascript:alert(1)' }
 		];
-		assert.equal((await redirects.GET(event('/api/campaigns/redirect?id=22'))).status, 410);
+		assert.equal(
+			(await redirects.GET(event('/api/campaigns/redirect?token=test-token-123456'))).status,
+			410
+		);
 	});
 	await check('logout acts on the session owner, never an arbitrary body ID', async () => {
 		let changedUser;
@@ -238,7 +300,7 @@ try {
 			const loginResponse = await login.POST(loginEvent);
 			assert.equal(loginResponse.status, 200);
 			const loginData = await loginResponse.json();
-			assert.equal(loginData.user_id, 7);
+			assert.equal(loginData.user_id, undefined);
 			assert.equal(loginData.password, undefined);
 			assert.equal(loginData.token, undefined);
 			assert.deepEqual(readSession(issued.token), { user_id: 7 });
@@ -260,19 +322,112 @@ try {
 			assert.deepEqual(readSession(issued.token), { user_id: 7 });
 		}
 	);
-	await check('valid campaign redirects record a click and preserve the destination', async () => {
-		let calls = 0;
-		db.query = async (sql) => {
-			calls++;
-			if (calls === 1)
-				return [{ campaign_id: 22, backlink_id: 1, destination_url: 'https://example.com/menu' }];
-			assert.match(sql, /INSERT INTO backlink_clicks/);
-			return [];
+	await check(
+		'valid campaign redirects preserve the destination when analytics is unconfigured',
+		async () => {
+			let calls = 0;
+			db.query = async (sql) => {
+				calls++;
+				if (calls === 1)
+					return [{ campaign_id: 22, backlink_id: 1, destination_url: 'https://example.com/menu' }];
+				assert.match(sql, /INSERT INTO backlink_clicks/);
+				return [];
+			};
+			const response = await redirects.GET(
+				event('/api/campaigns/redirect?token=test-token-123456')
+			);
+			assert.equal(response.status, 302);
+			assert.equal(response.headers.get('location'), 'https://example.com/menu');
+			assert.equal(calls, 1);
+		}
+	);
+	const account = await load('routes/api/account/+server.ts');
+	await check(
+		'profile edits require authentication and update only the session owner',
+		async () => {
+			db.query = fail;
+			assert.equal(
+				(await account.PATCH(event('/api/account', { method: 'PATCH', body: { name: 'Example' } })))
+					.status,
+				401
+			);
+			assert.equal(
+				(
+					await account.PATCH(
+						event('/api/account', { method: 'PATCH', user: { user_id: 7 }, body: { name: 'x' } })
+					)
+				).status,
+				400
+			);
+			db.query = async (sql, params) => {
+				assert.match(sql, /WHERE user_id=\$2/);
+				assert.deepEqual(params, ['Example', 7]);
+				return [{ user_id: 7 }];
+			};
+			assert.equal(
+				(
+					await account.PATCH(
+						event('/api/account', {
+							method: 'PATCH',
+							user: { user_id: 7 },
+							body: { name: ' Example ', user_id: 99 }
+						})
+					)
+				).status,
+				200
+			);
+		}
+	);
+
+	await check('public redirects reject numeric IDs before any database access', async () => {
+		db.query = fail;
+		assert.equal((await redirects.GET(event('/api/campaigns/redirect?id=30'))).status, 404);
+		assert.equal((await redirects.GET(event('/api/campaigns/redirect?token=30'))).status, 404);
+	});
+
+	const fields = await load('routes/api/campaigns/field/+server.ts');
+	await check('individual campaign field edits validate fields and enforce ownership', async () => {
+		db.query = fail;
+		assert.equal(
+			(
+				await fields.PATCH(
+					event('/api/campaigns/field', {
+						method: 'PATCH',
+						body: { id: '11111111-1111-4111-8111-111111111111', field: 'title', value: 'Updated' }
+					})
+				)
+			).status,
+			401
+		);
+		assert.equal(
+			(
+				await fields.PATCH(
+					event('/api/campaigns/field', {
+						method: 'PATCH',
+						user: { user_id: 7 },
+						body: { id: '11111111-1111-4111-8111-111111111111', field: 'user_id', value: 8 }
+					})
+				)
+			).status,
+			400
+		);
+		db.query = async (sql, params) => {
+			assert.match(sql, /user_id=\$3/);
+			assert.deepEqual(params, ['Updated', '11111111-1111-4111-8111-111111111111', 7]);
+			return [{ campaign_id: 22 }];
 		};
-		const response = await redirects.GET(event('/api/campaigns/redirect?id=22'));
-		assert.equal(response.status, 302);
-		assert.equal(response.headers.get('location'), 'https://example.com/menu');
-		assert.equal(calls, 2);
+		assert.equal(
+			(
+				await fields.PATCH(
+					event('/api/campaigns/field', {
+						method: 'PATCH',
+						user: { user_id: 7 },
+						body: { id: '11111111-1111-4111-8111-111111111111', field: 'title', value: 'Updated' }
+					})
+				)
+			).status,
+			200
+		);
 	});
 	const { parseGifLink, fetchGifBlob } = await load('lib/gif-sources.ts');
 	await check('GIF links require HTTPS and distinguish GIPHY pages from collections', () => {

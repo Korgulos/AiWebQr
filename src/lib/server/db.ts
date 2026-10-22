@@ -4,6 +4,12 @@ import ws from 'ws';
 
 neonConfig.webSocketConstructor = ws;
 export interface User {
+	public_id?: string;
+	first_name?: string | null;
+	last_name?: string | null;
+	username?: string | null;
+	avatar_data?: string | null;
+	session_version?: number;
 	user_id: number;
 	name: string;
 	email: string;
@@ -67,7 +73,7 @@ export const users = {
 
 	async findByEmail(email: string): Promise<User | null> {
 		const result = await db.query<User>(
-			'SELECT user_id, name, email, subscription, password, signup, login, logout, updated_at FROM users WHERE email = $1',
+			'SELECT user_id, name, email, subscription, password, signup, login, logout, updated_at, first_name, last_name, username, avatar_data, session_version, public_id FROM users WHERE email = $1',
 			[email]
 		);
 		return result[0] || null;
@@ -75,7 +81,7 @@ export const users = {
 
 	async findById(id: number): Promise<User | null> {
 		const result = await db.query<User>(
-			'SELECT user_id, name, email, subscription, password, signup, login, logout, updated_at FROM users WHERE user_id = $1',
+			'SELECT user_id, name, email, subscription, password, signup, login, logout, updated_at, first_name, last_name, username, avatar_data, session_version, public_id FROM users WHERE user_id = $1',
 			[id]
 		);
 		return result[0] || null;

@@ -105,3 +105,202 @@
 		}
 	}
 }
+
+/* Follow the operating system before hydration and on live preference changes. */
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: 222.2 84% 4.9%;
+		--foreground: 210 40% 98%;
+		--muted: 217.2 32.6% 17.5%;
+		--muted-foreground: 215 20.2% 65.1%;
+		--popover: 222.2 84% 4.9%;
+		--popover-foreground: 210 40% 98%;
+		--card: 222.2 84% 4.9%;
+		--card-foreground: 210 40% 98%;
+		--border: 217.2 32.6% 17.5%;
+		--input: 217.2 32.6% 17.5%;
+		--primary: 210 40% 98%;
+		--primary-foreground: 222.2 47.4% 11.2%;
+		--secondary: 217.2 32.6% 17.5%;
+		--secondary-foreground: 210 40% 98%;
+		--accent: 217.2 32.6% 17.5%;
+		--accent-foreground: 210 40% 98%;
+		--destructive: 0 62.8% 30.6%;
+		--destructive-foreground: 210 40% 98%;
+		--ring: 212.7 26.8% 83.9%;
+		--sidebar-background: 240 5.9% 10%;
+		--sidebar-foreground: 240 4.8% 95.9%;
+		--sidebar-primary: 224.3 76.3% 48%;
+		--sidebar-primary-foreground: 0 0% 100%;
+		--sidebar-accent: 240 3.7% 15.9%;
+		--sidebar-accent-foreground: 240 4.8% 95.9%;
+		--sidebar-border: 240 3.7% 15.9%;
+		--sidebar-ring: 217.2 91.2% 59.8%;
+	}
+}
+
+:root {
+	color-scheme: light dark;
+}
+@media (prefers-color-scheme: light) {
+	:root {
+		color-scheme: light;
+	}
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		color-scheme: dark;
+	}
+	input:not([type='range']):not([type='color']):not([type='checkbox']):not([type='file']),
+	textarea,
+	select {
+		background-color: #111c30;
+		color: #e2e8f0;
+		border-color: #334155;
+	}
+	input::placeholder,
+	textarea::placeholder {
+		color: #94a3b8;
+		opacity: 1;
+	}
+	dialog {
+		color: #e2e8f0;
+	}
+	:focus-visible {
+		outline-color: #a5b4fc;
+	}
+}
+/* Shared legacy utility palette, covering public pages, dialogs and account tools. */
+@layer utilities {
+	@media (prefers-color-scheme: dark) {
+		.bg-white {
+			background-color: #111c30;
+		}
+		.bg-slate-50,
+		.bg-gray-50 {
+			background-color: #0b1220;
+		}
+		.bg-slate-100,
+		.bg-gray-100 {
+			background-color: #1e293b;
+		}
+		.bg-gray-200,
+		.bg-gray-300,
+		.bg-slate-200 {
+			background-color: #29364d;
+		}
+		button.bg-white,
+		a.bg-white {
+			background-color: #252e4a;
+			border-color: #465477;
+			color: #e0e7ff;
+		}
+		button.bg-white:hover,
+		a.bg-white:hover,
+		.hover\:bg-gray-300:hover {
+			background-color: #354363;
+		}
+		.bg-indigo-50,
+		.bg-indigo-100 {
+			background-color: #1e2548;
+		}
+		.bg-red-50,
+		.bg-red-100 {
+			background-color: #3a1924;
+		}
+		.bg-emerald-50,
+		.bg-emerald-100 {
+			background-color: #102e28;
+		}
+		.bg-amber-50 {
+			background-color: #332a16;
+		}
+		.text-slate-950,
+		.text-slate-900,
+		.text-slate-800,
+		.text-gray-900,
+		.text-gray-800 {
+			color: #f1f5f9;
+		}
+		.text-slate-700,
+		.text-slate-600,
+		.text-gray-700,
+		.text-gray-600 {
+			color: #cbd5e1;
+		}
+		.text-slate-500,
+		.text-gray-500,
+		.text-gray-400 {
+			color: #a6b5cb;
+		}
+		.text-indigo-600,
+		.text-indigo-700,
+		.text-indigo-800 {
+			color: #a5b4fc;
+		}
+		.text-red-600,
+		.text-red-700 {
+			color: #fda4af;
+		}
+		.text-emerald-700 {
+			color: #6ee7b7;
+		}
+		.border-slate-100,
+		.border-slate-200,
+		.border-slate-300,
+		.border-gray-200,
+		.border-gray-300,
+		.border-indigo-100,
+		.border-indigo-200 {
+			border-color: #334155;
+		}
+		.border-red-200,
+		.border-red-300 {
+			border-color: #763446;
+		}
+		.border-amber-200 {
+			border-color: #7c602a;
+		}
+		.border-emerald-200 {
+			border-color: #28604b;
+		}
+		.from-indigo-50 {
+			--tw-gradient-from: #121c35 var(--tw-gradient-from-position);
+			--tw-gradient-to: rgb(18 28 53 / 0) var(--tw-gradient-to-position);
+		}
+		.via-white {
+			--tw-gradient-to: rgb(11 18 32 / 0) var(--tw-gradient-to-position);
+			--tw-gradient-stops:
+				var(--tw-gradient-from), #0b1220 var(--tw-gradient-via-position), var(--tw-gradient-to);
+		}
+		.to-violet-50 {
+			--tw-gradient-to: #211b38 var(--tw-gradient-to-position);
+		}
+		.hover\:bg-slate-50:hover,
+		.hover\:bg-indigo-50:hover,
+		.hover\:bg-indigo-100:hover {
+			background-color: #263452;
+		}
+		.hover\:bg-red-50:hover {
+			background-color: #4c2030;
+		}
+		.hover\:text-indigo-600:hover,
+		.hover\:text-indigo-800:hover {
+			color: #c7d2fe;
+		}
+	}
+}
+
+@media (prefers-color-scheme: dark) {
+	input[type='file']::file-selector-button {
+		background-color: #293457;
+		color: #e0e7ff;
+		border: 1px solid #465477;
+		border-radius: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		cursor: pointer;
+	}
+	input[type='file']::file-selector-button:hover {
+		background-color: #354363;
+	}
+}
