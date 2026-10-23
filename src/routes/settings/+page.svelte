@@ -1,5 +1,8 @@
 <script lang="ts">
 	import LocalDate from '$lib/elements/local-date.svelte';
+	import SocialSignIn from '$lib/elements/social-sign-in.svelte';
+	import { socialAuthMessage } from '$lib/social-auth';
+	import { page } from '$app/state';
 	import Nav from '$lib/elements/nav/nav.svelte';
 	import { invalidateAll, goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/authStore';
@@ -157,6 +160,27 @@
 <main class="mx-auto max-w-3xl space-y-6 px-4 py-10">
 	<a href="/" class="text-sm font-semibold text-indigo-600">← Back to dashboard</a>
 	<h1 class="text-3xl font-bold">Account settings</h1>
+	{#if page.url.searchParams.has('authError')}<p
+			role="alert"
+			class="rounded-xl bg-red-50 p-4 text-red-800"
+		>
+			{socialAuthMessage(page.url.searchParams.get('authError'))}
+		</p>{/if}
+	{#if page.url.searchParams.has('connected')}<p
+			role="status"
+			class="rounded-xl bg-emerald-50 p-4 text-emerald-800"
+		>
+			Your sign-in provider has been connected.
+		</p>{/if}
+	{#if data.socialProviders.length}
+		<section class="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+			<h2 class="text-xl font-semibold">Connected accounts</h2>
+			<p class="mb-5 mt-2 text-sm text-slate-500">
+				Connect Google or Microsoft to sign in to this account.
+			</p>
+			<SocialSignIn connect linked={data.linkedProviders} />
+		</section>
+	{/if}
 	{#if message}<p
 			role="status"
 			class="rounded-xl border p-4 {failed

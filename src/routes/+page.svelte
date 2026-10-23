@@ -107,4 +107,5 @@
 {/if}
 <footer class="border-t border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
 	QR Gen Me · Made for real-world connections.
+	<a href="/privacy" class="ml-3 underline underline-offset-4">Privacy policy</a>
 </footer>

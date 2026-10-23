@@ -1,5 +1,12 @@
 # Development backend migration
 
+006_social_accounts.sql adds provider/subject identities for Google and Microsoft.
+Matching email never links accounts automatically. The development migration and
+fixture test can run independently of provider credentials. See docs/social-sign-in.md
+for provisioning, activation, scopes and current account-management limitations.
+Migration 006 has been applied to development and production. Temporary development
+fixtures validated identity creation, repeat login, collision rejection and explicit linking.
+
 Visible timestamps and expiry editors use the browser's local time zone. Expiry
 inputs convert local wall time to ISO UTC for storage. Dashboard daily buckets use
 the validated qr_timezone cookie populated by the browser; campaign analytics gets

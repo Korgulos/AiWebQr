@@ -15,7 +15,8 @@ const versions = [
 	'002_account_settings',
 	'003_campaign_purposes',
 	'004_public_ids',
-	'005_campaign_qr_gallery'
+	'005_campaign_qr_gallery',
+	'006_social_accounts'
 ];
 const client = new pg.Client({
 	connectionString: env.DATABASE_URL,

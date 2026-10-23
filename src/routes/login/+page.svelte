@@ -4,6 +4,8 @@
 	import { page } from '$app/state';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { authStore } from '$lib/stores/authStore';
+	import SocialSignIn from '$lib/elements/social-sign-in.svelte';
+	import { socialAuthMessage } from '$lib/social-auth';
 
 	let email = $state('');
 	let password = $state('');
@@ -53,6 +55,12 @@
 				Sign in to your account
 			</h2>
 		</div>
+		{#if page.url.searchParams.has('authError')}
+			<p role="alert" class="rounded-lg bg-red-50 p-4 text-sm text-red-800">
+				{socialAuthMessage(page.url.searchParams.get('authError'))}
+			</p>
+		{/if}
+		<SocialSignIn {returnTo} />
 		<form class="mt-8 space-y-6" onsubmit={preventDefault(handleLogin)}>
 			<div class="-space-y-px rounded-md shadow-sm">
 				<div>

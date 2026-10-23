@@ -4,6 +4,7 @@
 	import logo from '$lib/assets/qr-code-sm.png';
 	import { authStore } from '$lib/stores/authStore';
 	import { login, register, logout } from '$lib/auth';
+	import SocialSignIn from '$lib/elements/social-sign-in.svelte';
 
 	let mobileOpen = $state(false);
 	function accountDropdown(node: HTMLDetailsElement) {
@@ -332,6 +333,7 @@
 	>
 		<div class="w-full max-w-md rounded-lg bg-white p-8">
 			<h2 id="login-title" class="mb-6 text-2xl font-bold">Welcome back</h2>
+			<SocialSignIn />
 			{#if error}
 				<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
 					{error}
@@ -399,6 +401,7 @@
 	>
 		<div class="w-full max-w-md rounded-lg bg-white p-8">
 			<h2 id="register-title" class="mb-6 text-2xl font-bold">Create an account</h2>
+			<SocialSignIn />
 			{#if error}
 				<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
 					{error}
