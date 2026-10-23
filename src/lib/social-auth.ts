@@ -13,6 +13,8 @@ export function socialAuthMessage(code: string | null) {
 			'An account with this email already exists. Sign in using your existing method, then connect this provider in Account settings.',
 		already_linked:
 			'This provider is already connected to an account. Use that account to sign in.',
+		link_mismatch:
+			'Choose the existing account with the same email to connect these sign-in methods. Please start again with the provider you want to add.',
 		email_required:
 			'This provider did not supply a supported email address. Create an account with email and password, then connect it in Account settings.'
 	};

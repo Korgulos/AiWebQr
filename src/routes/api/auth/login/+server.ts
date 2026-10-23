@@ -3,6 +3,8 @@ import { createSession, requireSessionSecret } from '$lib/server/session';
 import { users } from '$lib/server/db';
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
+import { completeSocialLink } from '$lib/server/social-link';
+import { SocialAccountError } from '$lib/server/social-accounts';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -37,6 +39,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		if (!isValidPassword) {
 			return json({ error: 'Invalid email or password' }, { status: 401 });
 		}
+		if (payload.linkSocial === true) await completeSocialLink(cookies, user);
 
 		// Update login time
 		await users.updateLoginTime(user.user_id);
@@ -49,6 +52,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			...userResponse
 		});
 	} catch (err) {
+		if (err instanceof SocialAccountError)
+			return json(
+				{
+					error:
+						err.message === 'link_mismatch'
+							? 'Sign in to the existing account with the same email to connect this provider.'
+							: 'The connection attempt expired or could not be completed. Please try again.'
+				},
+				{ status: 409 }
+			);
 		console.error('Login error:', err);
 		return json({ error: 'Unable to sign in. Please try again.' }, { status: 500 });
 	}

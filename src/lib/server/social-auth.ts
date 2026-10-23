@@ -43,6 +43,7 @@ export interface OAuthFlow {
 	origin: string;
 	linkUserId?: number;
 	linkVersion?: number;
+	pendingLinkId?: string;
 }
 
 export function beginSocialAuth(
@@ -50,7 +51,8 @@ export function beginSocialAuth(
 	origin: string,
 	cookies: Cookies,
 	returnTo: string | null,
-	link?: { user_id: number; session_version?: number }
+	link?: { user_id: number; session_version?: number },
+	pendingLinkId?: string
 ) {
 	const credentials = config(provider);
 	if (!credentials) return null;
@@ -60,6 +62,7 @@ export function beginSocialAuth(
 		verifier: randomBytes(48).toString('base64url'),
 		returnTo: safeReturnTo(returnTo),
 		origin,
+		...(pendingLinkId ? { pendingLinkId } : {}),
 		...(link ? { linkUserId: link.user_id, linkVersion: link.session_version || 0 } : {})
 	};
 	const challenge = createHash('sha256').update(flow.verifier).digest('base64url');

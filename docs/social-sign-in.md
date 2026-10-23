@@ -69,8 +69,11 @@ Official guide: <https://learn.microsoft.com/en-us/entra/identity-platform/v2-oa
 
 - A new provider identity creates one user and an existing provider identity signs
   into the same user. Campaigns stay attached to the existing integer owner ID.
-- Matching emails never silently merge accounts. Sign in with the existing method,
-  then connect the provider in Account settings. A provider can belong to only one user.
+- Matching emails open an inline connection step during sign-in. Confirm ownership
+  once with the existing provider or password to attach the incoming provider to
+  the same user and campaigns. Pending connections expire after ten minutes and
+  reject a different account or session version. Account settings also supports
+  explicit connections. A provider can belong to only one user.
 - OAuth transactions expire after ten minutes, are signed, scoped to the provider
   and browser, and use state, nonce, PKCE and an HttpOnly SameSite cookie.
 - Google ID tokens are validated by Google's library. Microsoft tokens are verified

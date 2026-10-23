@@ -5,9 +5,11 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { authStore } from '$lib/stores/authStore';
 	import SocialSignIn from '$lib/elements/social-sign-in.svelte';
-	import { socialAuthMessage } from '$lib/social-auth';
+	import { socialAuthMessage, providerLabels } from '$lib/social-auth';
+	import type { PageData } from './$types';
+	let { data }: { data: PageData } = $props();
 
-	let email = $state('');
+	let email = $state(data.pendingLink?.email || '');
 	let password = $state('');
 	let error = $state('');
 	let loading = $state(false);
@@ -21,6 +23,7 @@
 			: '/';
 
 	async function handleLogin() {
+		const destination = data.pendingLink?.returnTo || returnTo;
 		loading = true;
 		error = '';
 
@@ -28,17 +31,17 @@
 			const response = await fetch('/api/auth/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, password })
+				body: JSON.stringify({ email, password, linkSocial: Boolean(data.pendingLink) })
 			});
 
-			const data = await response.json();
+			const result = await response.json();
 
 			if (response.ok) {
-				authStore.setUser(data);
+				authStore.setUser(result);
 				await invalidateAll();
-				await goto(returnTo);
+				await goto(destination);
 			} else {
-				error = data.error || 'Login failed';
+				error = result.error || 'Login failed';
 			}
 		} catch (e) {
 			error = 'Login failed. Please try again.';
@@ -52,15 +55,26 @@
 	<div class="w-full max-w-md space-y-8">
 		<div>
 			<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-				Sign in to your account
+				{data.pendingLink ? 'Connect your sign-in methods' : 'Sign in to your account'}
 			</h2>
 		</div>
+		{#if data.pendingLink}
+			<p class="rounded-lg bg-indigo-50 p-4 text-sm text-indigo-900">
+				An account already uses <strong>{data.pendingLink.email}</strong>. Sign in to that account
+				once to connect {providerLabels[data.pendingLink.provider]}. After connecting, you can use
+				either sign-in method for the same account and campaigns.
+			</p>
+		{/if}
 		{#if page.url.searchParams.has('authError')}
 			<p role="alert" class="rounded-lg bg-red-50 p-4 text-sm text-red-800">
 				{socialAuthMessage(page.url.searchParams.get('authError'))}
 			</p>
 		{/if}
-		<SocialSignIn {returnTo} />
+		<SocialSignIn
+			{returnTo}
+			only={data.pendingLink?.providers}
+			connectPending={Boolean(data.pendingLink)}
+		/>
 		<form class="mt-8 space-y-6" onsubmit={preventDefault(handleLogin)}>
 			<div class="-space-y-px rounded-md shadow-sm">
 				<div>

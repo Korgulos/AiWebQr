@@ -4,13 +4,19 @@
 	let {
 		returnTo = '/',
 		connect = false,
-		linked = []
+		linked = [],
+		only,
+		connectPending = false
 	}: {
 		returnTo?: string;
 		connect?: boolean;
 		linked?: SocialProvider[];
+		only?: SocialProvider[];
+		connectPending?: boolean;
 	} = $props();
-	const providers = $derived(page.data.socialProviders || []);
+	const providers = $derived(
+		(page.data.socialProviders || []).filter((provider) => !only || only.includes(provider))
+	);
 </script>
 
 {#if providers.length}
@@ -27,7 +33,7 @@
 				</p>
 			{:else}
 				<a
-					href={`/api/auth/${provider}?${connect ? 'link=1' : `returnTo=${encodeURIComponent(returnTo)}`}`}
+					href={`/api/auth/${provider}?${connect ? 'link=1' : `returnTo=${encodeURIComponent(returnTo)}${connectPending ? '&connectPending=1' : ''}`}`}
 					data-sveltekit-reload
 					class="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
 				>

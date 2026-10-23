@@ -26,6 +26,7 @@ const emails = [googleEmail, microsoftEmail];
 try {
 	const { db } = await server.ssrLoadModule('/src/lib/server/db.ts');
 	db.getClient = () => pool.connect();
+	db.query = async (sql, args) => (await pool.query(sql, args)).rows;
 	const { resolveSocialAccount } = await server.ssrLoadModule('/src/lib/server/social-accounts.ts');
 	const identity = {
 		provider: 'google',
@@ -86,6 +87,51 @@ try {
 	console.log(
 		'PASS Microsoft profile email remains unverified and linked identities cannot change owners'
 	);
+	const { prepareSocialLink, completeSocialLink, pendingSocialLink, existingSocialLinkUser } =
+		await server.ssrLoadModule('/src/lib/server/social-link.ts');
+	const values = new Map();
+	const cookies = {
+		get: (key) => values.get(key),
+		set: (key, value) => values.set(key, value),
+		delete: (key) => values.delete(key)
+	};
+	const incoming = { ...identity, subject: `${marker}-same-email`, email: microsoftEmail };
+	const pending = await prepareSocialLink(incoming, cookies, '/campaigns');
+	assert.equal(pendingSocialLink(cookies).userId, second.user_id);
+	await assert.rejects(() => completeSocialLink(cookies, created), /link_mismatch/);
+	await assert.rejects(
+		() => existingSocialLinkUser(identity, cookies, pending.id),
+		/link_mismatch/
+	);
+	await assert.rejects(() => completeSocialLink(cookies, second, 'wrong-flow'), /expired/);
+	const owner = await existingSocialLinkUser(
+		{ provider: 'microsoft', subject: `${marker}-new` },
+		cookies,
+		pending.id
+	);
+	assert.equal(await completeSocialLink(cookies, owner, pending.id), '/campaigns');
+	assert.equal(pendingSocialLink(cookies), null);
+	assert.equal((await resolveSocialAccount(incoming)).user_id, second.user_id);
+	const identities = await pool.query('SELECT provider FROM social_accounts WHERE user_id=$1', [
+		second.user_id
+	]);
+	assert.equal(identities.rows.length, 2);
+	console.log(
+		'PASS same-email Google links to Microsoft owner after proof; wrong accounts and flows are rejected'
+	);
+	await prepareSocialLink(
+		{
+			provider: 'microsoft',
+			subject: `${marker}-linked`,
+			email: googleEmail,
+			name: 'Linked fixture',
+			emailVerified: false
+		},
+		cookies,
+		'/'
+	);
+	assert.equal(await completeSocialLink(cookies, created), '/');
+	console.log('PASS same-email Microsoft confirmation also preserves the Google account');
 } catch (error) {
 	console.error('Development social test failed:', error.code || error.name);
 	process.exitCode = 1;

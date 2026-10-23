@@ -14,7 +14,8 @@ export class SocialAccountError extends Error {}
 
 export async function resolveSocialAccount(
 	identity: SocialIdentity,
-	linkUserId?: number
+	linkUserId?: number,
+	expectedVersion?: number
 ): Promise<User> {
 	const client = await db.getClient();
 	try {
@@ -31,6 +32,8 @@ export async function resolveSocialAccount(
 		if (user && linkUserId && user.user_id !== linkUserId) {
 			throw new SocialAccountError('already_linked');
 		}
+		if (user && expectedVersion !== undefined && (user.session_version || 0) !== expectedVersion)
+			throw new SocialAccountError('expired');
 		if (!user) {
 			if (linkUserId) {
 				const result = await client.query<User>('SELECT * FROM users WHERE user_id=$1 FOR UPDATE', [
@@ -38,6 +41,8 @@ export async function resolveSocialAccount(
 				]);
 				user = result.rows[0];
 				if (!user) throw new SocialAccountError('failed');
+				if (expectedVersion !== undefined && (user.session_version || 0) !== expectedVersion)
+					throw new SocialAccountError('expired');
 				const other = await client.query(
 					'SELECT 1 FROM social_accounts WHERE user_id=$1 AND provider=$2',
 					[linkUserId, identity.provider]
