@@ -1,5 +1,18 @@
 <script lang="ts">
-	import artisticDemo from '$lib/assets/QrInfo.gif';
+	import {
+		bodyShapes,
+		eyeShapes,
+		qrFrames,
+		baseBodyShape,
+		hasFrameLabel,
+		decoratedHeight,
+		decorateQR,
+		exportQR,
+		type BodyShape,
+		type FrameStyle
+	} from '$lib/qr-design';
+	import EyeColorControl from '$lib/elements/eye-color-control.svelte';
+	import EyeShapePreview from '$lib/elements/eye-shape-preview.svelte';
 	import ContentForm from '$lib/elements/qr-content-form.svelte';
 	import {
 		buildQRContent,
@@ -9,15 +22,21 @@
 		type ContentType
 	} from '$lib/qr-content';
 	import type QRCodeStyling from 'qr-code-styling';
-	import type { Options, DotType, CornerSquareType, CornerDotType } from 'qr-code-styling';
+	import type { Options, CornerSquareType, CornerDotType } from 'qr-code-styling';
 	import { onMount } from 'svelte';
 
 	let {
 		fixedContent = '',
+		initialContentType = 'url',
+		expandLogo = false,
+		hideIntro = false,
 		embedded = false,
 		onSave
 	}: {
 		fixedContent?: string;
+		initialContentType?: ContentType;
+		expandLogo?: boolean;
+		hideIntro?: boolean;
 		embedded?: boolean;
 		onSave?: (file: Blob, content: string) => Promise<void>;
 	} = $props();
@@ -30,7 +49,7 @@
 		try {
 			const encoded = content.value;
 			const instance = qrCode;
-			const file = await instance?.getRawData('png');
+			const file = instance ? await exportQR(instance, 'png') : null;
 			if (encoded !== content.value || instance !== qrCode)
 				throw new Error('Design changed. Please save again.');
 			if (!(file instanceof Blob)) throw new Error('Generate a QR first.');
@@ -48,7 +67,7 @@
 	let ready = $state(false);
 	let qrCode: QRCodeStyling | null = $state(null);
 	let previewContainer: HTMLDivElement | null = $state(null);
-	let contentType = $state<ContentType>('url');
+	let contentType = $state<ContentType>(initialContentType);
 	let values = $state(emptyContent());
 	const hasContent = $derived(
 		Object.entries(values).some(
@@ -70,7 +89,21 @@
 	let customEyes = $state(false);
 	let eyeFrameColor = $state('#111827');
 	let eyeBallColor = $state('#111827');
-	let bodyStyle = $state<DotType>('square');
+	let eyeFrameMode = $state<'solid' | 'linear' | 'radial'>('solid');
+	let eyeBallMode = $state<'solid' | 'linear' | 'radial'>('solid');
+	let eyeFrameEndColor = $state('#4338ca');
+	let eyeBallEndColor = $state('#075985');
+	let eyeFrameRotation = $state(90);
+	let eyeBallRotation = $state(90);
+	let bodyStyle = $state<BodyShape>('square');
+	let outerFrame = $state<FrameStyle>('none');
+	let frameColor = $state('#111827');
+	let frameCaption = $state('SCAN ME');
+	const frameTextColor = $derived(
+		contrastRatio(frameColor, '#ffffff') >= contrastRatio(frameColor, '#111827')
+			? '#ffffff'
+			: '#111827'
+	);
 	let frameStyle = $state<CornerSquareType>('square');
 	let ballStyle = $state<CornerDotType>('square');
 	let uploadedLogo = $state('');
@@ -78,16 +111,9 @@
 	let logoPadding = $state(4);
 	let hideLogoDots = $state(true);
 	let logoInput: HTMLInputElement | undefined = $state();
-	const bodyStyles = [
-		'square',
-		'dots',
-		'rounded',
-		'classy',
-		'classy-rounded',
-		'extra-rounded'
-	] as const;
-	const frameStyles = ['square', 'dot', 'extra-rounded'] as const;
-	const ballStyles = ['square', 'dot', 'rounded', 'extra-rounded'] as const;
+	const bodyStyles = bodyShapes;
+	const frameStyles = eyeShapes;
+	const ballStyles = eyeShapes;
 	const templates = [
 		{
 			name: 'Classic',
@@ -146,7 +172,14 @@
 		[
 			useGradient ? gradientColor1 : mainColor,
 			...(useGradient ? [gradientColor2] : []),
-			...(customEyes ? [eyeFrameColor, eyeBallColor] : [])
+			...(customEyes
+				? [
+						eyeFrameColor,
+						eyeBallColor,
+						...(eyeFrameMode !== 'solid' ? [eyeFrameEndColor] : []),
+						...(eyeBallMode !== 'solid' ? [eyeBallEndColor] : [])
+					]
+				: [])
 		].some((color) => contrastRatio(color, transparent ? '#ffffff' : backgroundColor) < 4.5)
 	);
 	function resetDesign() {
@@ -161,7 +194,14 @@
 		customEyes = false;
 		eyeFrameColor = '#111827';
 		eyeBallColor = '#111827';
+		eyeFrameMode = eyeBallMode = 'solid';
+		eyeFrameEndColor = '#4338ca';
+		eyeBallEndColor = '#075985';
+		eyeFrameRotation = eyeBallRotation = 90;
 		bodyStyle = 'square';
+		outerFrame = 'none';
+		frameColor = '#111827';
+		frameCaption = 'SCAN ME';
 		frameStyle = 'square';
 		ballStyle = 'square';
 		uploadedLogo = '';
@@ -180,6 +220,24 @@
 		frameStyle = template.frame;
 		ballStyle = template.ball;
 	}
+	function eyeGradient(
+		mode: 'solid' | 'linear' | 'radial',
+		start: string,
+		end: string,
+		rotation: number
+	) {
+		return mode === 'solid'
+			? undefined
+			: {
+					type: mode,
+					rotation: (rotation * Math.PI) / 180,
+					colorStops: [
+						{ offset: 0, color: start },
+						{ offset: 1, color: end }
+					]
+				};
+	}
+
 	async function generateQR() {
 		const revision = ++renderRevision;
 		if (!QRConstructor || !previewContainer) return;
@@ -217,21 +275,33 @@
 					margin: logoPadding,
 					saveAsBlob: true
 				},
-				dotsOptions: { type: bodyStyle, color: mainColor, gradient },
+				dotsOptions: { type: baseBodyShape(bodyStyle), color: mainColor, gradient },
 				backgroundOptions: { color: transparent ? 'transparent' : backgroundColor },
 				cornersSquareOptions: {
 					type: frameStyle,
 					color: customEyes ? eyeFrameColor : mainColor,
-					gradient: customEyes ? undefined : gradient
+					gradient: customEyes
+						? eyeGradient(eyeFrameMode, eyeFrameColor, eyeFrameEndColor, eyeFrameRotation)
+						: gradient
 				},
 				cornersDotOptions: {
 					type: ballStyle,
 					color: customEyes ? eyeBallColor : mainColor,
-					gradient: customEyes ? undefined : gradient
+					gradient: customEyes
+						? eyeGradient(eyeBallMode, eyeBallColor, eyeBallEndColor, eyeBallRotation)
+						: gradient
 				}
 			};
 			// Recreate the instance so removing a gradient or logo cannot retain old merged options.
 			const instance = new QRConstructor(options);
+			const decoration = {
+				body: bodyStyle,
+				frame: outerFrame,
+				color: frameColor,
+				caption: frameCaption,
+				textColor: frameTextColor
+			};
+			instance.applyExtension((svg) => decorateQR(svg, size, decoration));
 			await instance.getRawData('svg');
 			if (revision !== renderRevision) return;
 			previewContainer.replaceChildren();
@@ -250,7 +320,15 @@
 	async function downloadQR() {
 		if (!qrCode || !content.value || isLoading) return;
 		try {
-			await qrCode.download({ name: `qr-gen-me-${contentType}`, extension: format });
+			const blob = await exportQR(qrCode, format);
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = `qr-gen-me-${contentType}.${format}`;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			setTimeout(() => URL.revokeObjectURL(url), 10000);
 		} catch {
 			error = 'Unable to download. Please try again.';
 		}
@@ -291,7 +369,17 @@
 		customEyes;
 		eyeFrameColor;
 		eyeBallColor;
+		eyeFrameMode;
+		eyeBallMode;
+		eyeFrameEndColor;
+		eyeBallEndColor;
+		eyeFrameRotation;
+		eyeBallRotation;
 		bodyStyle;
+		outerFrame;
+		frameColor;
+		frameCaption;
+		frameTextColor;
 		frameStyle;
 		ballStyle;
 		uploadedLogo;
@@ -327,52 +415,61 @@
 
 <div class="container mx-auto bg-gray-50 p-4">
 	<div class="mx-auto max-w-7xl">
-		{#if !embedded}<div class="mb-8 grid items-stretch gap-6 md:grid-cols-2 md:gap-8">
-				<div class="self-center py-3">
-					<h2 class="text-3xl font-bold text-gray-900">Make it yours</h2>
-					<p class="mt-3 max-w-lg leading-7 text-gray-600">
-						Enter a link or text, customize your code, and download it. No account needed.
-					</p>
-				</div>
-				<a
-					href="/arte-qr-gen"
-					class="group flex min-h-44 items-center justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-800 p-5 text-white shadow-sm transition-shadow hover:shadow-lg sm:gap-6 sm:p-6"
+		{#if !embedded}{#if !hideIntro}<div
+					class="mb-8 grid items-stretch gap-6 md:grid-cols-2 md:gap-8"
 				>
-					<div class="min-w-0">
-						<p class="text-xs font-semibold uppercase tracking-widest text-indigo-200">
-							Artistic QR
+					<div class="self-center py-3">
+						<h2 class="text-3xl font-bold text-gray-900">Make it yours</h2>
+						<p class="mt-3 max-w-lg leading-7 text-gray-600">
+							Enter a link or text, customize your code, and download it. No account needed.
 						</p>
-						<h3 class="mt-2 text-xl font-bold sm:text-2xl">Bring your QR to life.</h3>
-						<p class="mt-2 max-w-xs text-sm leading-6 text-indigo-100">
-							Turn an image or animated GIF into a QR code.
-						</p>
-						<span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold"
-							>Try Artistic QR <span
-								aria-hidden="true"
-								class="transition-transform group-hover:translate-x-1">→</span
-							></span
-						>
 					</div>
-					<div class="shrink-0 text-center">
-						<div
-							class="artistic-demo relative size-28 overflow-hidden rounded-xl border-4 border-white/90 bg-white shadow-lg sm:size-36"
-						>
-							<img
-								src={artisticDemo}
-								alt="Animated artistic QR code example"
-								width="1100"
-								height="1100"
-								class="artistic-demo-image absolute"
-							/>
+					<a
+						href="/arte-qr-gen"
+						class="group flex min-h-44 items-center justify-between gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-800 p-5 text-white shadow-sm transition-shadow hover:shadow-lg sm:gap-6 sm:p-6"
+					>
+						<div class="min-w-0">
+							<p class="text-xs font-semibold uppercase tracking-widest text-indigo-200">
+								Artistic QR
+							</p>
+							<h3 class="mt-2 text-xl font-bold sm:text-2xl">Bring your QR to life.</h3>
+							<p class="mt-2 max-w-xs text-sm leading-6 text-indigo-100">
+								Turn an image or animated GIF into a QR code.
+							</p>
+							<span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold"
+								>Try Artistic QR <span
+									aria-hidden="true"
+									class="transition-transform group-hover:translate-x-1">→</span
+								></span
+							>
 						</div>
-						<span
-							class="mt-2 block text-[10px] font-medium uppercase tracking-widest text-indigo-200"
-							>Animated QR example</span
-						>
-					</div>
-				</a>
-			</div>
-
+						<div class="shrink-0 text-center">
+							<div
+								class="artistic-demo relative size-28 overflow-hidden rounded-xl border-4 border-white/90 bg-white shadow-lg sm:size-36"
+							>
+								<picture>
+									<source
+										media="(prefers-reduced-motion: reduce)"
+										srcset="/artistic-examples/ripple-poster.png"
+									/>
+									<img
+										src="/artistic-examples/ripple-qr.gif"
+										alt="Animated purple ripple artistic QR code linking to QR Gen Me"
+										width="328"
+										height="328"
+										decoding="async"
+										class="size-full object-contain"
+									/>
+								</picture>
+							</div>
+							<span
+								class="mt-2 block text-[10px] font-medium uppercase tracking-widest text-indigo-200"
+								>Animated QR example</span
+							>
+						</div>
+					</a>
+				</div>
+			{/if}
 			<div
 				class="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3"
 				role="group"
@@ -425,7 +522,7 @@
 					</div>{/if}
 				<details class="design-section" open>
 					<summary
-						><span class="step-number">2</span>Set colors<span
+						><span class="step-number">2</span>Color & Shape<span
 							class="summary-arrow"
 							aria-hidden="true">⌄</span
 						></summary
@@ -493,20 +590,6 @@
 						<label class="flex items-center gap-2 text-sm text-slate-700"
 							><input type="checkbox" bind:checked={transparent} />Transparent background</label
 						>
-						<label class="flex items-center gap-2 text-sm text-slate-700"
-							><input type="checkbox" bind:checked={customEyes} />Custom eye colors</label
-						>
-						{#if customEyes}<div class="grid grid-cols-2 gap-4">
-								<label class="color-field"
-									>Eye frame<input type="color" bind:value={eyeFrameColor} /><span
-										>{eyeFrameColor}</span
-									></label
-								><label class="color-field"
-									>Eye center<input type="color" bind:value={eyeBallColor} /><span
-										>{eyeBallColor}</span
-									></label
-								>
-							</div>{/if}
 						{#if lowContrast}<p
 								role="status"
 								class="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-900"
@@ -514,9 +597,112 @@
 								Low contrast can make your QR code harder to scan. Use darker foreground colors and
 								a lighter background.
 							</p>{/if}
+						<div class="space-y-5 border-t border-slate-200 pt-5">
+							<div>
+								<p class="field-label mb-3">Body shape</p>
+								<div class="flex flex-wrap gap-2">
+									{#each bodyStyles as shape}<button
+											type="button"
+											class="shape-choice"
+											class:chosen={bodyStyle === shape}
+											aria-label={`Body: ${shape}`}
+											aria-pressed={bodyStyle === shape}
+											onclick={() => (bodyStyle = shape)}
+											><svg viewBox="0 0 36 36" class="size-9" aria-hidden="true">
+												{#each [0, 1, 2] as row}{#each [0, 1, 2] as col}
+														{#if shape === 'diamond'}
+															<polygon
+																points={`${7 + col * 11},${3 + row * 11} ${11 + col * 11},${7 + row * 11} ${7 + col * 11},${11 + row * 11} ${3 + col * 11},${7 + row * 11}`}
+																fill="currentColor"
+															/>
+														{:else if shape === 'small-dots'}
+															<circle
+																cx={7 + col * 11}
+																cy={7 + row * 11}
+																r="3"
+																fill="currentColor"
+															/>
+														{:else}
+															<rect
+																x={3 + col * 11}
+																y={3 + row * 11}
+																width={shape === 'vertical-bars' ? 5 : 8}
+																height={shape === 'horizontal-bars' ? 5 : 8}
+																rx={shape === 'square' || shape.includes('bars')
+																	? 0
+																	: shape === 'dots' || shape === 'extra-rounded'
+																		? 4
+																		: shape === 'rounded'
+																			? 2
+																			: (row + col) % 2
+																				? 0
+																				: 4}
+																fill="currentColor"
+															/>
+														{/if}
+													{/each}{/each}</svg
+											><span>{shape.replaceAll('-', ' ')}</span></button
+										>{/each}
+								</div>
+							</div>
+							<div>
+								<p class="field-label mb-3">Eye frame shape</p>
+								<div class="flex flex-wrap gap-2">
+									{#each frameStyles as shape}<button
+											type="button"
+											class="shape-choice"
+											class:chosen={frameStyle === shape}
+											aria-label={`Eye frame: ${shape}`}
+											aria-pressed={frameStyle === shape}
+											onclick={() => (frameStyle = shape)}
+											><EyeShapePreview {shape} ring={true} /><span
+												>{shape.replaceAll('-', ' ')}</span
+											></button
+										>{/each}
+								</div>
+							</div>
+							<div>
+								<p class="field-label mb-3">Eye center shape</p>
+								<div class="flex flex-wrap gap-2">
+									{#each ballStyles as shape}<button
+											type="button"
+											class="shape-choice"
+											class:chosen={ballStyle === shape}
+											aria-label={`Eye center: ${shape}`}
+											aria-pressed={ballStyle === shape}
+											onclick={() => (ballStyle = shape)}
+											><EyeShapePreview {shape} /><span>{shape.replaceAll('-', ' ')}</span></button
+										>{/each}
+								</div>
+							</div>
+							<label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
+								><input type="checkbox" bind:checked={customEyes} />Custom Eye Color</label
+							>
+							{#if customEyes}
+								<div class="grid gap-4 sm:grid-cols-2">
+									<EyeColorControl
+										label="Eye frame"
+										bind:mode={eyeFrameMode}
+										bind:color={eyeFrameColor}
+										bind:endColor={eyeFrameEndColor}
+										bind:rotation={eyeFrameRotation}
+									/>
+									<EyeColorControl
+										label="Eye center"
+										bind:mode={eyeBallMode}
+										bind:color={eyeBallColor}
+										bind:endColor={eyeBallEndColor}
+										bind:rotation={eyeBallRotation}
+									/>
+								</div>
+							{/if}
+							<p class="text-xs text-slate-500 dark:text-slate-400">
+								When disabled, eyes follow the foreground color or gradient.
+							</p>
+						</div>
 					</div>
 				</details>
-				<details class="design-section">
+				<details class="design-section" open={expandLogo}>
 					<summary
 						><span class="step-number">3</span>Add a logo<span
 							class="summary-arrow"
@@ -575,93 +761,78 @@
 						{/if}
 					</div>
 				</details>
-				<details class="design-section">
+
+				<details class="design-section" open>
 					<summary
-						><span class="step-number">4</span>Customize design<span
-							class="summary-arrow"
-							aria-hidden="true">⌄</span
+						><span class="step-number">4</span>Frame<span class="summary-arrow" aria-hidden="true"
+							>⌄</span
 						></summary
 					>
 					<div class="section-body space-y-5">
-						<div>
-							<p class="field-label mb-3">Body shape</p>
-							<div class="flex flex-wrap gap-2">
-								{#each bodyStyles as shape}<button
-										type="button"
-										class="shape-choice"
-										class:chosen={bodyStyle === shape}
-										aria-label={`Body: ${shape}`}
-										aria-pressed={bodyStyle === shape}
-										onclick={() => (bodyStyle = shape)}
-										><svg viewBox="0 0 36 36" class="size-9" aria-hidden="true"
-											>{#each [0, 1, 2] as row}{#each [0, 1, 2] as col}<rect
-														x={3 + col * 11}
-														y={3 + row * 11}
-														width="8"
-														height="8"
-														rx={shape === 'square'
-															? 0
-															: shape === 'dots' || shape === 'extra-rounded'
-																? 4
-																: shape === 'rounded'
-																	? 2
-																	: (row + col) % 2
-																		? 0
-																		: 4}
-														fill="currentColor"
-													/>{/each}{/each}</svg
-										><span>{shape.replaceAll('-', ' ')}</span></button
-									>{/each}
-							</div>
-						</div>
-						<div>
-							<p class="field-label mb-3">Eye frame shape</p>
-							<div class="flex flex-wrap gap-2">
-								{#each frameStyles as shape}<button
-										type="button"
-										class="shape-choice"
-										class:chosen={frameStyle === shape}
-										aria-label={`Eye frame: ${shape}`}
-										aria-pressed={frameStyle === shape}
-										onclick={() => (frameStyle = shape)}
-										><svg viewBox="0 0 36 36" class="size-9" aria-hidden="true"
-											><rect
-												x="5"
-												y="5"
-												width="26"
-												height="26"
-												rx={shape === 'square' ? 0 : shape === 'dot' ? 13 : 8}
-												fill="none"
+						<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+							{#each qrFrames as frame}
+								<button
+									type="button"
+									class="shape-choice"
+									class:chosen={outerFrame === frame.id}
+									aria-label={`Frame: ${frame.label}`}
+									aria-pressed={outerFrame === frame.id}
+									onclick={() => (outerFrame = frame.id)}
+								>
+									<svg viewBox="0 0 48 56" class="h-14 w-12" aria-hidden="true">
+										{#if frame.id !== 'none'}<rect
+												x="3"
+												y="3"
+												width="42"
+												height="50"
+												rx={frame.id === 'rounded' || frame.id === 'badge' ? 7 : 1}
+												fill={hasFrameLabel(frame.id) ? 'currentColor' : 'none'}
 												stroke="currentColor"
-												stroke-width="6"
-											/></svg
-										><span>{shape.replaceAll('-', ' ')}</span></button
-									>{/each}
-							</div>
+												stroke-width="2"
+											/>{/if}
+										<rect
+											x="8"
+											y={frame.id === 'label-top' ? 15 : 7}
+											width="32"
+											height="32"
+											fill="white"
+										/>
+										<path
+											d={frame.id === 'label-top'
+												? 'M13 20h8v8h-8z M27 20h8v8h-8z M13 34h8v8h-8z M28 34h6v6h-6z'
+												: 'M13 12h8v8h-8z M27 12h8v8h-8z M13 26h8v8h-8z M28 26h6v6h-6z'}
+											fill={hasFrameLabel(frame.id) ? '#111827' : 'currentColor'}
+										/>
+										{#if hasFrameLabel(frame.id)}<path
+												d={frame.id === 'label-top' ? 'M15 9h18' : 'M15 46h18'}
+												stroke="white"
+												stroke-width="3"
+											/>{/if}
+									</svg>
+									<span>{frame.label}</span>
+								</button>
+							{/each}
 						</div>
-						<div>
-							<p class="field-label mb-3">Eye center shape</p>
-							<div class="flex flex-wrap gap-2">
-								{#each ballStyles as shape}<button
-										type="button"
-										class="shape-choice"
-										class:chosen={ballStyle === shape}
-										aria-label={`Eye center: ${shape}`}
-										aria-pressed={ballStyle === shape}
-										onclick={() => (ballStyle = shape)}
-										><svg viewBox="0 0 36 36" class="size-9" aria-hidden="true"
-											><rect
-												x="8"
-												y="8"
-												width="20"
-												height="20"
-												rx={shape === 'square' ? 0 : shape === 'dot' ? 10 : 5}
-												fill="currentColor"
-											/></svg
-										><span>{shape.replaceAll('-', ' ')}</span></button
-									>{/each}
-							</div>
-						</div>
+						{#if outerFrame !== 'none'}
+							<label class="color-field"
+								><span>Frame color</span><input type="color" bind:value={frameColor} /><span
+									class="font-mono text-xs">{frameColor}</span
+								></label
+							>
+							{#if hasFrameLabel(outerFrame)}<label class="block text-sm font-medium text-slate-700"
+									>Frame text<input
+										class="mt-2 w-full"
+										type="text"
+										maxlength="32"
+										bind:value={frameCaption}
+										placeholder="SCAN ME"
+									/></label
+								>{/if}
+							<p class="text-xs leading-5 text-slate-500">
+								The frame is included in PNG, SVG and saved designs. Keep clear space around the
+								code and test the exported image before printing.
+							</p>
+						{/if}
 					</div>
 				</details>
 				<button
@@ -683,7 +854,10 @@
 						class="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 p-2"
 						class:transparent-preview={transparent}
 					>
-						{#if !content.value}<p class="max-w-52 text-center text-sm leading-6 text-slate-400">
+						{#if !content.value}<p
+								class="max-w-52 text-center text-sm leading-6 text-slate-600"
+								class:qr-empty-on-checker={transparent}
+							>
 								Your QR code will appear here.<br />Choose a content type and add your details.
 							</p>{/if}
 						<div
@@ -696,7 +870,8 @@
 					<label
 						for="size"
 						class="mt-5 flex items-center justify-between text-sm font-medium text-slate-700"
-						>Export resolution<span class="font-semibold text-indigo-600">{size} × {size} px</span
+						>Export resolution<span class="font-semibold text-indigo-600"
+							>{size} × {decoratedHeight(size, outerFrame)} px</span
 						></label
 					>
 					<input
@@ -708,7 +883,7 @@
 						bind:value={size}
 						class="mt-3 w-full"
 					/>
-					<div class="mt-1 flex justify-between text-xs text-slate-400">
+					<div class="mt-1 flex justify-between text-xs text-slate-600">
 						<span>Small file</span><span>Print quality</span>
 					</div>
 					<p class="mt-4 text-xs leading-5 text-slate-500">
@@ -784,13 +959,13 @@
 </div>
 
 <style>
-	.artistic-demo-image {
-		width: 262%;
-		max-width: none;
-		height: auto;
-		left: -138%;
-		top: -27%;
+	.qr-empty-on-checker {
+		background: #ffffff;
+		color: #475569;
+		border-radius: 0.5rem;
+		padding: 0.75rem;
 	}
+
 	.step-number {
 		display: inline-flex;
 		align-items: center;

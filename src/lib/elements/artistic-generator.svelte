@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { artisticExamples } from '$lib/artistic-examples';
 	import Nav from '$lib/elements/nav/nav.svelte';
 	import GifPicker from '$lib/elements/gif-picker.svelte';
 	import prepareBackgroundPython from '$lib/artistic-background.py?raw';
@@ -55,6 +56,34 @@
 		isAnimated = true;
 		error = '';
 		if (uploadInput) uploadInput.value = '';
+	}
+
+	async function useExample(example: (typeof artisticExamples)[number]) {
+		if (isLoading || isImporting) return;
+		isImporting = true;
+		error = '';
+		try {
+			const response = await fetch(example.background, { credentials: 'omit' });
+			if (!response.ok) throw new Error('Example unavailable');
+			const blob = await response.blob();
+			const image = await new Promise<string>((resolve, reject) => {
+				const reader = new FileReader();
+				reader.onload = () => resolve(String(reader.result));
+				reader.onerror = () => reject(new Error('Unable to read example'));
+				reader.readAsDataURL(blob);
+			});
+			backgroundImage = image;
+			backgroundSource = null;
+			isAnimated = example.animated;
+			if (!inputUrl.trim()) inputUrl = 'https://www.qr-gen-me.com/';
+			if (uploadInput) uploadInput.value = '';
+			document.getElementById('artistic-controls')?.scrollIntoView({ block: 'start' });
+			document.getElementById('url')?.focus({ preventScroll: true });
+		} catch {
+			error = 'Unable to load this example. Try another example or upload your own image.';
+		} finally {
+			isImporting = false;
+		}
 	}
 
 	function clearBackground() {
@@ -167,9 +196,28 @@ base64.b64encode(buffer.getvalue()).decode()
 
 <main class="container mx-auto bg-gray-50 p-4">
 	<div class="mx-auto max-w-7xl">
+		{#if !embedded}
+			<header class="py-8 sm:py-12">
+				<p class="text-sm font-semibold uppercase tracking-widest text-indigo-600">
+					Images, motion and real connections
+				</p>
+				<h1 class="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+					Artistic & Animated QR Code Generator
+				</h1>
+				<p class="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
+					Blend a QR code with your image or an animated GIF. Create PNG artwork for print or a
+					moving GIF for digital displays, without an account.
+				</p>
+				<a
+					href="#artistic-examples"
+					class="mt-5 inline-block font-semibold text-indigo-700 underline underline-offset-4"
+					>Explore four original QR examples →</a
+				>
+			</header>
+		{/if}
 		<div class="grid grid-cols-1 gap-8 md:grid-cols-2">
 			<!-- Left Column - Controls -->
-			<div class="space-y-6 rounded-lg bg-white p-6 shadow-sm">
+			<div id="artistic-controls" class="space-y-6 rounded-lg bg-white p-6 shadow-sm">
 				<div>
 					<label for="url" class="block text-sm font-medium text-gray-700">URL or Text</label>
 					<input
@@ -328,9 +376,9 @@ base64.b64encode(buffer.getvalue()).decode()
 			<p class="text-sm font-semibold uppercase tracking-widest text-indigo-600">
 				Your image. Your connection.
 			</p>
-			<h1 id="artistic-info" class="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-				Artistic QR Code Generator
-			</h1>
+			<h2 id="artistic-info" class="mt-3 text-3xl font-bold tracking-tight text-slate-900">
+				How to create an artistic QR code
+			</h2>
 			<p class="mt-4 max-w-2xl leading-7 text-slate-600">
 				Create a QR code with a photo, illustration or animated GIF. Add your link, choose a
 				background, and download a design that brings your content to life.
@@ -358,6 +406,151 @@ base64.b64encode(buffer.getvalue()).decode()
 					</p>
 				</article>
 			</div>
+			<section id="artistic-examples" class="mt-12 scroll-mt-6" aria-labelledby="examples-title">
+				<h2 id="examples-title" class="text-3xl font-bold text-slate-900">
+					Artistic QR examples you can try
+				</h2>
+				<p class="mt-4 max-w-3xl leading-7 text-slate-600">
+					These four original designs encode https://www.qr-gen-me.com/. Every frame of the gallery
+					files was decoded in an automated check. Test your own result on real phones and at its
+					final display size.
+				</p>
+				<div class="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+					{#each artisticExamples as example}
+						<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+							<picture>
+								{#if example.animated}<source
+										media="(prefers-reduced-motion: reduce)"
+										srcset={`/artistic-examples/${example.id}-poster.png`}
+									/>{/if}
+								<img
+									src={example.preview}
+									alt={`${example.title}: ${example.animated ? 'animated' : 'static'} QR code linking to QR Gen Me`}
+									width="328"
+									height="328"
+									loading="lazy"
+									class="aspect-square w-full bg-white object-contain"
+								/>
+							</picture>
+							<div class="p-5">
+								<p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+									{example.animated ? 'Animated GIF' : 'Static PNG'}
+								</p>
+								<h3 class="mt-2 text-lg font-bold text-slate-900">{example.title}</h3>
+								<p class="mt-2 text-sm leading-6 text-slate-600">{example.description}</p>
+								<button
+									type="button"
+									onclick={() => useExample(example)}
+									disabled={isLoading || isImporting}
+									class="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+									>Make a similar QR</button
+								>
+							</div>
+						</article>
+					{/each}
+				</div>
+			</section>
+			<section class="mt-12" aria-labelledby="choose-format">
+				<h2 id="choose-format" class="text-2xl font-bold text-slate-900">
+					Standard, artistic or animated?
+				</h2>
+				<div class="mt-5 overflow-x-auto rounded-xl border border-slate-200">
+					<table class="w-full min-w-[540px] text-left text-sm leading-6">
+						<caption class="sr-only">Compare the three QR styles available on QR Gen Me</caption>
+						<thead class="bg-indigo-50"
+							><tr
+								><th scope="col" class="p-4">Style</th><th scope="col" class="p-4">Use it for</th
+								><th scope="col" class="p-4">Download</th></tr
+							></thead
+						>
+						<tbody class="divide-y divide-slate-200">
+							<tr
+								><th scope="row" class="p-4"
+									><a href="/" class="text-indigo-700 underline">Standard QR</a></th
+								><td class="p-4">Clear codes with colors, shapes and an optional logo</td><td
+									class="p-4">PNG or SVG</td
+								></tr
+							>
+							<tr
+								><th scope="row" class="p-4">Artistic QR</th><td class="p-4"
+									>Image backgrounds for printed or digital artwork</td
+								><td class="p-4">PNG</td></tr
+							>
+							<tr
+								><th scope="row" class="p-4">Animated QR</th><td class="p-4"
+									>Motion on screens, websites and digital presentations</td
+								><td class="p-4">GIF</td></tr
+							>
+						</tbody>
+					</table>
+				</div>
+			</section>
+			<section class="mt-12 max-w-4xl" aria-labelledby="scan-tips">
+				<h2 id="scan-tips" class="text-2xl font-bold text-slate-900">
+					Keep your artistic QR easy to scan
+				</h2>
+				<ul class="mt-5 list-disc space-y-3 pl-6 leading-7 text-slate-600">
+					<li>
+						Use a short destination URL. Longer content creates a denser pattern with less room for
+						artwork.
+					</li>
+					<li>
+						Prefer simple backgrounds with clear contrast. Keep all three corner markers and the
+						empty border visible.
+					</li>
+					<li>
+						For animation, test more than one moment in the loop and avoid flashing, high-contrast
+						frames. A scan may fail during a busy frame.
+					</li>
+					<li>
+						Scan the downloaded file with different phones, then test the final printed or displayed
+						version. An automated decode is useful, but cannot guarantee a phone camera will scan
+						every design.
+					</li>
+				</ul>
+			</section>
+			<section class="mt-12 max-w-4xl" aria-labelledby="artistic-faq">
+				<h2 id="artistic-faq" class="text-2xl font-bold text-slate-900">Artistic QR questions</h2>
+				<div class="mt-5 divide-y divide-slate-200">
+					<details class="py-4">
+						<summary class="cursor-pointer font-semibold"
+							>How do I make an animated QR code?</summary
+						>
+						<p class="mt-3 leading-7 text-slate-600">
+							Enter your link or text, select an animated GIF, and press Generate. The first
+							generation loads the image tools and may take longer. Download the generated GIF for a
+							surface that supports animation.
+						</p>
+					</details>
+					<details class="py-4">
+						<summary class="cursor-pointer font-semibold">Which background files can I use?</summary
+						>
+						<p class="mt-3 leading-7 text-slate-600">
+							Upload PNG, JPEG, WebP or GIF files up to 5 MB, use a direct GIF link, or choose a
+							GIPHY result. Backgrounds are cropped to a square, so keep the subject near the
+							center. Only GIF uploads produce animated output.
+						</p>
+					</details>
+					<details class="py-4">
+						<summary class="cursor-pointer font-semibold">Can I print an animated QR code?</summary>
+						<p class="mt-3 leading-7 text-slate-600">
+							Paper cannot display animation. Use a static image background and export PNG for
+							print, or use the standard generator for SVG. Test a printed proof at the intended
+							size.
+						</p>
+					</details>
+					<details class="py-4">
+						<summary class="cursor-pointer font-semibold"
+							>Does the QR code expire or change its link?</summary
+						>
+						<p class="mt-3 leading-7 text-slate-600">
+							These static examples store the destination directly and have no built-in expiry. The
+							destination still needs to work. To change the encoded content, generate a new QR
+							code.
+						</p>
+					</details>
+				</div>
+			</section>
 			{#if !$authStore.user}
 				<div class="mt-10 rounded-2xl bg-indigo-50 p-8 text-center">
 					<h2 class="text-2xl font-bold text-slate-900">Keep your campaigns in one place</h2>

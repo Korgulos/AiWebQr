@@ -20,6 +20,34 @@ try {
 		contrastRatio
 	} = await server.ssrLoadModule('/src/lib/qr-content.ts');
 	const data = (values) => ({ ...emptyContent(), ...values });
+	const { nextGifPage, gifDiscoveryRequest } = await server.ssrLoadModule(
+		'/src/lib/gif-discovery.ts'
+	);
+	check('default GIF discovery changes pages without repeating until the pool wraps', () => {
+		const pages = [];
+		let current = nextGifPage(null, () => 0.5);
+		for (let i = 0; i < 10; i++) {
+			pages.push(current);
+			current = nextGifPage(current);
+		}
+		assert.equal(new Set(pages).size, 10);
+		assert.equal(current, pages[0]);
+	});
+	check(
+		'empty GIF searches use rated trending pages and explicit searches preserve their term',
+		() => {
+			const trending = gifDiscoveryRequest('  ', 3);
+			assert.equal(trending.path, 'trending');
+			assert.equal(trending.params.offset, '36');
+			assert.equal(trending.params.rating, 'g');
+			assert.ok(!('q' in trending.params));
+			const search = gifDiscoveryRequest(' ocean waves ', 1);
+			assert.equal(search.path, 'search');
+			assert.equal(search.params.q, 'ocean waves');
+			assert.equal(search.params.offset, '12');
+		}
+	);
+
 	check('website URLs normalize and reject executable schemes and embedded credentials', () => {
 		assert.equal(
 			build('url', data({ url: ' https://example.com/a?x=1 ' })),

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { qrTools } from '$lib/qr-tools';
 	import Dashboard from '$lib/elements/dashboard.svelte';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
@@ -9,20 +10,15 @@
 </script>
 
 <svelte:head>
-	<title>{data.user ? 'Dashboard | QR Gen Me' : 'QR Gen Me — Free Custom QR Codes'}</title>
-	<meta property="og:title" content="QR Gen Me — Make every connection count" />
-	<meta
-		property="og:description"
-		content="Turn a link into a custom QR code. Add your colors and logo, then download in PNG or SVG."
-	/>
-	<meta property="og:type" content="website" />
+	<title
+		>{data.user ? 'Dashboard | QR Gen Me' : 'Free QR Code Generator with Logo | QR Gen Me'}</title
+	>
 </svelte:head>
 <Nav bind:this={navigation} />
 {#if data.user}
 	<Dashboard {data} />
 {:else}
 	<main>
-		<h1 class="sr-only">Free custom QR code generator</h1>
 		<section id="generator" aria-label="Create your QR code"><Generator /></section>
 		<section
 			class="relative overflow-hidden border-b border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-violet-50"
@@ -31,9 +27,9 @@
 				<p class="mb-5 text-sm font-semibold uppercase tracking-widest text-indigo-600">
 					Small code. Endless possibilities.
 				</p>
-				<h2 class="max-w-3xl text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
-					Make every<br />connection <span class="text-indigo-600">count.</span>
-				</h2>
+				<h1 class="max-w-3xl text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
+					Free QR Code Generator<br /><span class="text-indigo-600">with your own style.</span>
+				</h1>
 				<p class="mt-6 max-w-xl text-lg leading-8 text-slate-600">
 					Your link, your style. Create a custom QR code in seconds — ready for your next menu,
 					business card or big idea.
@@ -49,6 +45,20 @@
 						>Colors & custom logos</span
 					>
 				</div>
+			</div>
+		</section>
+		<section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8" aria-labelledby="qr-tools">
+			<h2 id="qr-tools" class="text-3xl font-bold text-slate-900">A QR code for what you need</h2>
+			<div class="mt-6 grid gap-5 md:grid-cols-3">
+				{#each qrTools as tool}
+					<a
+						href={`/${tool.slug}`}
+						class="rounded-2xl border border-slate-200 p-6 transition-colors hover:border-indigo-400 hover:bg-indigo-50"
+					>
+						<h3 class="text-lg font-semibold text-indigo-700">{tool.label} →</h3>
+						<p class="mt-3 leading-7 text-slate-600">{tool.intro}</p>
+					</a>
+				{/each}
 			</div>
 		</section>
 		<section id="help" class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">

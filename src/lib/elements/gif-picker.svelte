@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
 	import { onDestroy, onMount } from 'svelte';
+	import { nextGifPage, gifDiscoveryRequest } from '$lib/gif-discovery';
 	import { fetchGifBlob, parseGifLink } from '$lib/gif-sources';
 
 	type Gif = { id: string; title: string; url: string; images: Record<string, { url: string }> };
@@ -24,8 +25,22 @@
 	let controller: AbortController | null = null;
 	let searchController: AbortController | null = null;
 	const apiKey = env.PUBLIC_GIPHY_API_KEY || '';
+	let defaultPage = 0;
+	let resultPage = 0;
+	let activeQuery = $state('');
+	const pageKey = 'qr_giphy_discovery_page';
 	onMount(() => {
-		if (apiKey && mode === 'search') void searchGifs();
+		if (apiKey && mode === 'search') {
+			let previous: number | null = null;
+			try {
+				const stored = sessionStorage.getItem(pageKey);
+				previous = stored === null ? null : Number(stored);
+			} catch {
+				/* Storage may be disabled. */
+			}
+			defaultPage = nextGifPage(previous);
+			void searchGifs();
+		}
 	});
 	onDestroy(() => {
 		controller?.abort();
@@ -42,7 +57,7 @@
 		return response.json();
 	}
 
-	async function searchGifs(event?: SubmitEvent) {
+	async function searchGifs(event?: SubmitEvent, more = false) {
 		event?.preventDefault();
 		if (!apiKey || searching) return;
 		searchController?.abort();
@@ -50,14 +65,28 @@
 		const timeout = setTimeout(() => searchController?.abort(), 15000);
 		searching = true;
 		message = '';
-		results = [];
+		const term = query.trim();
+		const page = term
+			? more && term === activeQuery
+				? (resultPage + 1) % 20
+				: 0
+			: more
+				? nextGifPage(defaultPage)
+				: defaultPage;
 		try {
-			const data = await getGiphy(
-				'search',
-				{ q: query.trim() ? query : 'best gifs', limit: '12', rating: 'g' },
-				searchController.signal
-			);
+			const request = gifDiscoveryRequest(term, page);
+			const data = await getGiphy(request.path, request.params, searchController.signal);
 			results = data.data;
+			activeQuery = term;
+			resultPage = page;
+			if (!term) {
+				defaultPage = page;
+				try {
+					sessionStorage.setItem(pageKey, String(page));
+				} catch {
+					/* Optional. */
+				}
+			}
 			if (!results.length) message = 'No GIFs found. Try another search.';
 		} catch (error) {
 			message = error instanceof Error ? error.message : 'Unable to search GIPHY.';
@@ -153,6 +182,16 @@
 					>{searching ? 'Searching…' : 'Search'}</button
 				>
 			</form>
+			<div class="flex items-center justify-between gap-3 text-xs text-slate-600">
+				<p>{activeQuery ? `Results for “${activeQuery}”` : 'Fresh GIF ideas from GIPHY'}</p>
+				<button
+					type="button"
+					onclick={() => searchGifs(undefined, true)}
+					disabled={disabled || searching || busy}
+					class="rounded-lg border border-indigo-200 px-3 py-2 font-semibold text-indigo-700 disabled:opacity-50"
+					>{searching ? 'Loading…' : 'Show more GIFs'}</button
+				>
+			</div>
 			<div
 				class="grid max-h-80 grid-cols-3 gap-2 overflow-y-auto overscroll-contain"
 				aria-label="GIPHY search results"
