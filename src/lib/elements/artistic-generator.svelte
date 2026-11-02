@@ -238,7 +238,7 @@
 					<span class="text-sm text-gray-500">{scale}x</span>
 				</div>
 
-				<details class="rounded-xl border border-indigo-100 bg-white p-4" open>
+				<details class="rounded-xl border border-indigo-100 bg-white p-4">
 					<summary class="cursor-pointer font-semibold text-slate-900">QR style & contrast</summary>
 					<fieldset disabled={isLoading || isImporting} class="mt-4 space-y-4">
 						<legend class="sr-only">Artistic QR appearance</legend>
