@@ -1,6 +1,0 @@
-[0:v]trim=start=1:end=16.5,setpts=PTS-STARTPTS[a];
-[0:v]trim=start=17:end=19.5,setpts=PTS-STARTPTS[b];
-[0:v]trim=start=29:end=30.2,setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=5.5[c];
-[a][b][c]concat=n=3:v=1:a=0,crop=1400:912:250:0,scale=980:638,pad=1280:720:150:55:color=0x0b1220,setsar=1[demo];
-[1:v]trim=duration=4,setpts=PTS-STARTPTS,setsar=1[end];
-[demo][end]concat=n=2:v=1:a=0,drawbox=x=0:y=620:w=iw:h=100:color=0x050912@0.95:t=fill,ass=docs/product-hunt/workflow-captions-zoom.ass[out]
