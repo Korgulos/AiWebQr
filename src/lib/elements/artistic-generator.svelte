@@ -2,7 +2,9 @@
 	import { artisticExamples } from '$lib/artistic-examples';
 	import Nav from '$lib/elements/nav/nav.svelte';
 	import GifPicker from '$lib/elements/gif-picker.svelte';
-	import prepareBackgroundPython from '$lib/artistic-background.py?raw';
+	import { generateArtisticImage } from '$lib/client/artistic-qr';
+	import { artisticContrast, defaultArtisticStyle, type ArtisticStyle } from '$lib/artistic-style';
+	import { onDestroy, untrack } from 'svelte';
 	import { authStore } from '$lib/stores/authStore';
 	let {
 		fixedContent = '',
@@ -32,8 +34,6 @@
 	}
 
 	let navigation: ReturnType<typeof Nav> | undefined = $state();
-	import type { PyodideInterface } from 'pyodide';
-	let pyodide: PyodideInterface | null = null;
 	let inputUrl = $state('');
 	$effect(() => {
 		if (fixedContent) inputUrl = fixedContent;
@@ -45,6 +45,9 @@
 	let backgroundImage = $state<string | null>(null);
 	let isAnimated = $state(false);
 	let scale = $state(4);
+	let dotSize = $state(62.68);
+	let style = $state<ArtisticStyle>({ ...defaultArtisticStyle });
+	const contrast = $derived(artisticContrast(style));
 	let generatedAnimated = $state(false);
 	let isImporting = $state(false);
 	let backgroundSource = $state<string | null>(null);
@@ -96,59 +99,48 @@
 	$effect(() => {
 		inputUrl;
 		scale;
+		dotSize;
+		JSON.stringify(style);
 		backgroundImage;
+		untrack(() => {
+			if (qrImage) URL.revokeObjectURL(qrImage);
+		});
 		qrImage = null;
+	});
+	onDestroy(() => {
+		if (qrImage) URL.revokeObjectURL(qrImage);
 	});
 
 	async function generateArtisticQR() {
 		if (!inputUrl.trim() || isLoading || isImporting) return;
 		isLoading = true;
 		error = '';
+		if (qrImage) URL.revokeObjectURL(qrImage);
 		qrImage = null;
 		try {
-			if (!pyodide) {
-				status = 'Loading image tools. The first generation may take a moment…';
-				const { loadPyodide } = await import('pyodide');
-				const runtime = await loadPyodide({
-					indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.7/full/'
-				});
-				await runtime.loadPackage(['Pillow', 'micropip']);
-				await runtime.runPythonAsync(`
-import micropip
-await micropip.install('segno==1.6.6')
-await micropip.install('qrcode-artistic==3.0.2')
-`);
-				pyodide = runtime;
-			}
-			status = 'Generating your QR code…';
-			// Values cross the Python boundary as data, never executable source.
-			pyodide.globals.set('qr_text', inputUrl);
-			pyodide.globals.set('qr_background', backgroundImage || '');
-			pyodide.globals.set('qr_scale', scale);
-			pyodide.globals.set('qr_kind', isAnimated && !!backgroundImage ? 'gif' : 'png');
-			const base64Data = await pyodide.runPythonAsync(
-				prepareBackgroundPython +
-					`
-import segno, io, base64
-qr = segno.make(qr_text, error='h', micro=False)
-buffer = io.BytesIO()
-if qr_background:
-    background = prepare_background(io.BytesIO(base64.b64decode(qr_background.split(',', 1)[1])))
-    qr.to_artistic(background=background, target=buffer, scale=int(qr_scale), border=4, kind=qr_kind)
-else:
-    qr.save(buffer, kind='png', scale=int(qr_scale), border=4)
-base64.b64encode(buffer.getvalue()).decode()
-`
+			status = 'Preparing your QR code…';
+			const blob = await generateArtisticImage(
+				{
+					text: inputUrl,
+					background: backgroundImage,
+					scale,
+					dotSize,
+					style: { ...style },
+					animated: isAnimated && !!backgroundImage
+				},
+				(message) => {
+					status = message;
+				}
 			);
-			generatedAnimated = isAnimated && !!backgroundImage;
-			qrImage = `data:image/${generatedAnimated ? 'gif' : 'png'};base64,${base64Data}`;
+			generatedAnimated = blob.type === 'image/gif';
+			qrImage = URL.createObjectURL(blob);
 		} catch (err) {
-			error = 'Unable to generate this QR code. Try shorter text or a smaller image, then retry.';
+			error =
+				err instanceof Error
+					? err.message
+					: 'Unable to generate this QR code. Try a smaller image.';
 			console.error('Artistic QR generation failed', err);
 		} finally {
-			if (pyodide)
-				for (const name of ['qr_text', 'qr_background', 'qr_scale', 'qr_kind'])
-					pyodide.globals.delete(name);
 			isLoading = false;
 			status = '';
 		}
@@ -246,6 +238,91 @@ base64.b64encode(buffer.getvalue()).decode()
 					<span class="text-sm text-gray-500">{scale}x</span>
 				</div>
 
+				<details class="rounded-xl border border-indigo-100 bg-white p-4" open>
+					<summary class="cursor-pointer font-semibold text-slate-900">QR style & contrast</summary>
+					<fieldset disabled={isLoading || isImporting} class="mt-4 space-y-4">
+						<legend class="sr-only">Artistic QR appearance</legend>
+						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<label class="block text-sm font-medium text-slate-700"
+								>Marker frame
+								<select
+									bind:value={style.frame}
+									class="mt-1 block w-full rounded-md border border-slate-300 bg-white p-2"
+								>
+									<option value="square">Square</option><option value="rounded">Rounded</option
+									><option value="circle">Circle</option>
+								</select>
+							</label>
+							<label class="block text-sm font-medium text-slate-700"
+								>Marker center
+								<select
+									bind:value={style.center}
+									class="mt-1 block w-full rounded-md border border-slate-300 bg-white p-2"
+								>
+									<option value="square">Square</option><option value="circle">Circle</option>
+								</select>
+							</label>
+						</div>
+						<div class="grid grid-cols-2 gap-4">
+							{#each [{ key: 'dark', label: 'Dark dots' }, { key: 'light', label: 'Light dots & border' }, { key: 'frameColor', label: 'Marker frame color' }, { key: 'centerColor', label: 'Marker center color' }] as color}
+								<label class="block text-sm font-medium text-slate-700"
+									>{color.label}
+									<input
+										type="color"
+										bind:value={style[color.key as 'dark' | 'light' | 'frameColor' | 'centerColor']}
+										class="mt-1 block h-10 w-full cursor-pointer rounded border border-slate-300"
+									/>
+								</label>
+							{/each}
+						</div>
+						<div
+							aria-live="polite"
+							class="rounded-lg border p-3 text-sm"
+							class:border-emerald-200={contrast.recommended}
+							class:bg-emerald-50={contrast.recommended}
+							class:border-amber-300={!contrast.recommended}
+							class:bg-amber-50={!contrast.recommended}
+						>
+							<p class="font-semibold text-slate-900">
+								Color contrast: {contrast.ratio.toFixed(2)}:1
+							</p>
+							<p class="mt-1 text-slate-700">
+								{contrast.recommended
+									? 'Recommended color contrast.'
+									: !contrast.darkOnLight
+										? 'Use darker dots and markers on a lighter background color.'
+										: 'Low contrast. Choose darker dots and markers or a lighter border color.'}
+							</p>
+							<p class="mt-1 text-slate-600">
+								Checks the selected colors, not every pixel of your image or GIF. Aim for at least
+								4.5:1 and test the downloaded QR with your phone.
+							</p>
+						</div>
+						<button
+							type="button"
+							onclick={() => {
+								style = { ...defaultArtisticStyle };
+								dotSize = 62.68;
+							}}
+							class="text-sm font-semibold text-indigo-700 underline">Reset QR style</button
+						>
+						<div>
+							<label for="dot-size" class="block text-sm font-medium text-gray-700"
+								>Dot size (%)</label
+							>
+							<input
+								id="dot-size"
+								type="number"
+								min="25"
+								max="100"
+								step="0.01"
+								bind:value={dotSize}
+								disabled={isLoading}
+								class="mt-1 w-28 rounded-md border border-gray-300 p-2"
+							/>
+						</div>
+					</fieldset>
+				</details>
 				<div>
 					<label for="backgroundUpload" class="block text-sm font-medium text-gray-700">
 						Background Image {#if isAnimated}(Animated GIF){/if}
@@ -548,9 +625,9 @@ base64.b64encode(buffer.getvalue()).decode()
 							>How do I make an animated QR code?</summary
 						>
 						<p class="mt-3 leading-7 text-slate-600">
-							Enter your link or text, select an animated GIF, and press Generate. The first
-							generation loads the image tools and may take longer. Download the generated GIF for a
-							surface that supports animation.
+							Enter your link or text, select an animated GIF, and press Generate. Generation runs
+							in your browser; larger GIFs take longer. Download the generated GIF for a surface
+							that supports animation.
 						</p>
 					</details>
 					<details class="py-4">

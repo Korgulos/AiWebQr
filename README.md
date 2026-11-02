@@ -14,7 +14,7 @@ Customize body and eye shapes, independent eye colors, linear/radial gradients, 
 
 ### Artistic QR codes
 
-`/arte-qr-gen` combines QR content with static images or animated GIF backgrounds and exports PNG or GIF. Pyodide 0.27.7, Segno, Pillow and qrcode-artistic run in the browser and load on demand. Initial generation requires network access to jsDelivr and PyPI; keep the Pyodide package version aligned with its CDN `indexURL`.
+`/arte-qr-gen` combines QR content with static images or animated GIF backgrounds and exports PNG or GIF. A bundled JavaScript Web Worker uses qrcode-generator, gifuct-js and gifenc; generation does not download Python, packages from PyPI or runtime files from a CDN. Processing requires a current browser with OffscreenCanvas and createImageBitmap support. GIF frame timing and loop counts are retained, including disposal handling. Generation has a 60-second timeout; backgrounds are limited to 4 megapixels and animations to 180 frames / 100 million source pixels across frames. These limits produce a visible error rather than unbounded processing.
 
 Background uploads and direct HTTPS GIF imports are limited to 5 MB. Remote sources must permit cross-origin fetching. Optional GIPHY search requires `PUBLIC_GIPHY_API_KEY`; direct GIF imports work without it. Images are center-cropped to a square, and GIF frame durations and loop counts are preserved. Provider search results do not imply a content license.
 
