@@ -10,7 +10,7 @@ const testEnv = {
 	MICROSOFT_CLIENT_SECRET: 'test-microsoft-secret'
 };
 const server = await createServer({
-	cacheDir: '/tmp/qr-social-auth-test',
+	cacheDir: 'node_modules/.cache/qr-social-auth-test',
 	server: { middlewareMode: true, hmr: false, ws: false },
 	plugins: [
 		{

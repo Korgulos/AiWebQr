@@ -10,7 +10,7 @@
 		...Object.fromEntries(qrTools.map((tool) => [`/${tool.slug}`, tool.description])),
 		'/': 'Free QR code generator with custom colors, logos and shapes. Create QR codes online and download PNG or SVG files without signing up.',
 		'/arte-qr-gen':
-			'Create artistic QR codes with images and animated GIF backgrounds. Customize your design and test that your QR code scans before sharing.',
+			'Free artistic and animated QR code generator. Create a QR code with a GIF background or photo, then download GIF or PNG without signing up.',
 		'/privacy':
 			'Read how QR Gen Me handles account information, QR campaigns and sign-in data, and how to contact us about your privacy.'
 	};
@@ -26,7 +26,7 @@
 			alt: 'QR Gen Me — Small code. Endless possibilities. Custom QR codes with artistic designs.'
 		},
 		'/arte-qr-gen': {
-			title: 'Artistic & Animated QR Code Generator | QR Gen Me',
+			title: 'Free Artistic & Animated QR Code Generator | QR Gen Me',
 			image: 'artistic',
 			alt: 'QR Gen Me Artistic QR — Make a code. Make it art. Images and animated GIFs.'
 		},

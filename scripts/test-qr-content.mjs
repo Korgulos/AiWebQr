@@ -4,7 +4,7 @@ const server = await createServer({
 	configFile: false,
 	appType: 'custom',
 	optimizeDeps: { noDiscovery: true, entries: [] },
-	cacheDir: '/tmp/qr-content-test-cache',
+	cacheDir: 'node_modules/.cache/qr-content-test-cache',
 	server: { middlewareMode: true, hmr: false, ws: false }
 });
 let checks = 0;

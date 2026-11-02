@@ -202,11 +202,12 @@ base64.b64encode(buffer.getvalue()).decode()
 					Images, motion and real connections
 				</p>
 				<h1 class="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-					Artistic & Animated QR Code Generator
+					Free Artistic & Animated QR Code Generator
 				</h1>
 				<p class="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-					Blend a QR code with your image or an animated GIF. Create PNG artwork for print or a
-					moving GIF for digital displays, without an account.
+					Create a QR code with a GIF background or blend it with your own photo. Use this free
+					artistic QR code generator to download PNG artwork for print or an animated QR code as a
+					GIF for digital displays, without an account.
 				</p>
 				<a
 					href="#artistic-examples"
@@ -392,7 +393,9 @@ base64.b64encode(buffer.getvalue()).decode()
 					</p>
 				</article>
 				<article class="rounded-2xl border border-slate-200 bg-white p-6">
-					<h2 class="text-lg font-semibold text-slate-900">Make it move</h2>
+					<h2 class="text-lg font-semibold text-slate-900">
+						Create a QR code with a GIF background
+					</h2>
 					<p class="mt-2 leading-7 text-slate-600">
 						Upload a PNG, JPEG, WebP or GIF up to 5 MB. Animated GIF backgrounds produce an animated
 						QR code.
@@ -408,7 +411,7 @@ base64.b64encode(buffer.getvalue()).decode()
 			</div>
 			<section id="artistic-examples" class="mt-12 scroll-mt-6" aria-labelledby="examples-title">
 				<h2 id="examples-title" class="text-3xl font-bold text-slate-900">
-					Artistic QR examples you can try
+					Artistic & animated QR code examples
 				</h2>
 				<p class="mt-4 max-w-3xl leading-7 text-slate-600">
 					These four original designs encode https://www.qr-gen-me.com/. Every frame of the gallery
@@ -512,6 +515,15 @@ base64.b64encode(buffer.getvalue()).decode()
 			<section class="mt-12 max-w-4xl" aria-labelledby="artistic-faq">
 				<h2 id="artistic-faq" class="text-2xl font-bold text-slate-900">Artistic QR questions</h2>
 				<div class="mt-5 divide-y divide-slate-200">
+					<details class="py-4">
+						<summary class="cursor-pointer font-semibold"
+							>Is this animated QR code generator free?</summary
+						>
+						<p class="mt-3 leading-7 text-slate-600">
+							Yes. Create an artistic QR code with an image or animated GIF background and download
+							the result without signing up. An account is only needed to save designs to campaigns.
+						</p>
+					</details>
 					<details class="py-4">
 						<summary class="cursor-pointer font-semibold"
 							>How do I make an animated QR code?</summary

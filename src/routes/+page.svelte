@@ -84,13 +84,15 @@
 				<div>
 					<h3 class="text-xl font-semibold">A little more creative?</h3>
 					<p class="mt-2 text-slate-300">
-						Blend your QR code with an image — even an animated GIF.
+						Try our free artistic and animated QR code generator. Blend your code with a photo or
+						GIF background.
 					</p>
 				</div>
 				<a
 					href="/arte-qr-gen"
 					class="rounded-lg bg-white px-5 py-3 font-semibold text-slate-900 hover:bg-indigo-50"
-					>Try Artistic QR →</a
+					>Artistic & Animated QR Code Generator →</a
+				>
 				>
 			</div>
 		</section>

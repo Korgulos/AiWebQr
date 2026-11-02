@@ -3,6 +3,6 @@
 </script>
 
 <svelte:head>
-	<title>Artistic & Animated QR Code Generator — GIF & PNG | QR Gen Me</title>
+	<title>Free Artistic & Animated QR Code Generator | QR Gen Me</title>
 </svelte:head>
 <ArtisticGenerator />

@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 // Exercise the real route handlers with an isolated database and session secret.
 const testSecret = 'test-only-secret-with-at-least-32-characters';
 const server = await createServer({
-	cacheDir: '/tmp/qr-security-vite-cache',
+	cacheDir: 'node_modules/.cache/qr-security-vite-cache',
 	server: { middlewareMode: true, hmr: false, ws: false },
 	plugins: [
 		{
