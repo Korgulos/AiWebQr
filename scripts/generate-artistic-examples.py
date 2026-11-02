@@ -16,6 +16,9 @@ for name, animated, palette in [
     ('sunrise', False, ('#fff8ed', '#f4d2a1', '#f6e5cd')),
     ('ripple', True, ('#f5f3ff', '#c4b5fd', '#ddd6fe')),
     ('confetti', True, ('#f0fdf4', '#a7e3c4', '#d2efe2')),
+    ('music-event', True, ('#f5f3ff', '#b9b1ef', '#ddd6fe')),
+    ('digital-invitation', True, ('#fff7ed', '#e8c8a8', '#f3dfc9')),
+    ('designer-portfolio', False, ('#effafa', '#9ad5d2', '#c9e9e7')),
 ]:
     frames = []
     for step in range(8 if animated else 1):
@@ -29,6 +32,26 @@ for name, animated, palette in [
             for ring in range(6, 0, -1):
                 radius = ring * 35 + step * 3
                 draw.ellipse((164-radius, 164-radius, 164+radius, 164+radius), outline=palette[1 + ring % 2], width=12)
+        elif name == 'music-event':
+            phase = 2 * math.pi * step / 8
+            for bar in range(11):
+                height = 35 + int(65 * (1 + math.sin(phase + bar * .65)))
+                x = 18 + bar * 28
+                draw.rounded_rectangle((x, 240-height, x+15, 240), radius=6, fill=palette[1 + bar % 2])
+        elif name == 'digital-invitation':
+            phase = 2 * math.pi * step / 8
+            for i in range(12):
+                angle = i * math.pi / 6
+                x = 164 + int(112 * math.cos(angle))
+                y = 164 + int(112 * math.sin(angle))
+                radius = 8 + int(3 * math.sin(phase + angle))
+                draw.ellipse((x-radius, y-radius, x+radius, y+radius), fill=palette[1 + i % 2])
+            draw.rounded_rectangle((35, 35, 293, 293), radius=70, outline=palette[2], width=3)
+        elif name == 'designer-portfolio':
+            draw.ellipse((-65, -45, 225, 245), fill=palette[2])
+            draw.polygon([(165, 75), (328, 180), (205, 328), (80, 225)], fill=palette[1])
+            for line in range(5):
+                draw.line((25, 255 + line*10, 130, 255 + line*10), fill=palette[2], width=4)
         else:
             for i in range(25):
                 x, y = (i*67 + step*7) % 328, (i*43 + step*3) % 328

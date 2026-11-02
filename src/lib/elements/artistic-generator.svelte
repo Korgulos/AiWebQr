@@ -212,7 +212,7 @@ base64.b64encode(buffer.getvalue()).decode()
 				<a
 					href="#artistic-examples"
 					class="mt-5 inline-block font-semibold text-indigo-700 underline underline-offset-4"
-					>Explore four original QR examples →</a
+					>Explore artistic & animated QR examples →</a
 				>
 			</header>
 		{/if}
@@ -414,13 +414,17 @@ base64.b64encode(buffer.getvalue()).decode()
 					Artistic & animated QR code examples
 				</h2>
 				<p class="mt-4 max-w-3xl leading-7 text-slate-600">
-					These four original designs encode https://www.qr-gen-me.com/. Every frame of the gallery
+					These original demo designs encode https://www.qr-gen-me.com/. Replace that URL with your
+					own event, RSVP or portfolio link when making a similar QR. Every frame of the gallery
 					files was decoded in an automated check. Test your own result on real phones and at its
 					final display size.
 				</p>
 				<div class="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 					{#each artisticExamples as example}
-						<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+						<article
+							id={`example-${example.id}`}
+							class="scroll-mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white"
+						>
 							<picture>
 								{#if example.animated}<source
 										media="(prefers-reduced-motion: reduce)"
@@ -441,6 +445,21 @@ base64.b64encode(buffer.getvalue()).decode()
 								</p>
 								<h3 class="mt-2 text-lg font-bold text-slate-900">{example.title}</h3>
 								<p class="mt-2 text-sm leading-6 text-slate-600">{example.description}</p>
+								<div class="mt-3 flex flex-wrap gap-3 text-sm text-indigo-700">
+									<a href={example.preview} download class="underline"
+										>Download {example.animated ? 'GIF' : 'PNG'}</a
+									>
+									{#if example.animated}<a
+											href={`/artistic-examples/${example.id}-poster.png`}
+											download
+											class="underline">Static PNG</a
+										>{/if}
+									<a
+										href={`#example-${example.id}`}
+										class="underline"
+										aria-label={`Direct link to ${example.title} example`}>Direct link</a
+									>
+								</div>
 								<button
 									type="button"
 									onclick={() => useExample(example)}

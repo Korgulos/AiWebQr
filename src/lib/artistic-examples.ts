@@ -1,5 +1,26 @@
 export const artisticExamples = [
 	{
+		id: 'music-event',
+		title: 'Music event',
+		animated: true,
+		description:
+			'A looping equalizer for event screens. Replace the demo URL with your lineup or ticket page.'
+	},
+	{
+		id: 'digital-invitation',
+		title: 'Digital invitation',
+		animated: true,
+		description:
+			'A gently moving floral border for digital invitations. Add your own RSVP link before sharing.'
+	},
+	{
+		id: 'designer-portfolio',
+		title: 'Designer portfolio',
+		animated: false,
+		description:
+			'A geometric PNG for a business card or portfolio cover. Use your own portfolio URL and test the printed result.'
+	},
+	{
 		id: 'ocean',
 		title: 'Ocean waves',
 		animated: false,

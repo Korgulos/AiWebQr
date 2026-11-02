@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:05,000
+Add your link. Find a GIF background.
+
+2
+00:00:05,000 --> 00:00:14,500
+Choose a GIF and adjust the size.
+
+3
+00:00:14,500 --> 00:00:18,000
+Generate your QR. First load takes longer.
+
+4
+00:00:18,000 --> 00:00:24,700
+Animated QR ready. Download and test it.
+
+5
+00:00:24,700 --> 00:00:28,700
+Try it free: qr-gen-me.com/arte-qr-gen
