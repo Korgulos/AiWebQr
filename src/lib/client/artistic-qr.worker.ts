@@ -31,7 +31,7 @@ function renderer(text: string, scale: number, dotSize: number, style: ArtisticS
 	if (version > 1) {
 		const positions = Math.floor(version / 7) + 2;
 		const step =
-			version === 32 ? 26 : Math.ceil((version * 4 + positions * 2 + 1) / (positions * 2 - 2)) * 2;
+			version === 32 ? 26 : Math.floor((version * 4 + positions * 2 + 1) / (positions * 2 - 2)) * 2;
 		alignment.push(6);
 		for (let i = positions - 1; i >= 1; i--) alignment.push(count - 7 - (i - 1) * step);
 	}
@@ -84,18 +84,20 @@ function renderer(text: string, scale: number, dotSize: number, style: ArtisticS
 					(x < 8 && y >= count - 8) ||
 					x === 6 ||
 					y === 6 ||
-					aligned ||
-					(version >= 7 && ((x < 6 && y >= count - 11) || (y < 6 && x >= count - 11)));
+					aligned;
 				const width =
 					!background || structural ? unit : Math.max(2, Math.ceil(unit * (dark ? 0.65 : 0.5)));
 				const offset = Math.floor((unit - width) / 2);
 				context.fillStyle = dark ? style.dark : style.light;
-				if (background && !structural) {
+				if (background) {
+					// Keep alignment/timing modules large, but use circles throughout.
+					// Version information uses the selected data-dot size as well.
+					// These patterns become numerous in high-version (dense) QR codes.
 					context.beginPath();
 					context.arc(
 						(x + 4.5) * unit,
 						(y + 4.5) * unit,
-						((width / 2) * dotSize) / 100,
+						structural ? unit / 2 : ((width / 2) * dotSize) / 100,
 						0,
 						Math.PI * 2
 					);
